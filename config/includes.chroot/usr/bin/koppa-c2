@@ -1,0 +1,5 @@
+#!/bin/bash
+# KOPPA-C2 Command & Control Server
+HOST="${1:-0.0.0.0}"
+PORT="${2:-8443}"
+exec python3 /usr/share/koppa-c2/server/c2_server.py "$HOST" "$PORT"

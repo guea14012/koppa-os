@@ -1,0 +1,31 @@
+# KOPPA-OS — Package list
+# Base Kali tools
+kali-linux-default
+kali-tools-top10
+
+# Python
+python3
+python3-pip
+python3-requests
+python3-cryptography
+python3-joblib
+python3-numpy
+python3-pandas
+
+# Network tools
+nmap
+netcat-openbsd
+tcpdump
+wireshark
+net-tools
+dnsutils
+iputils-ping
+curl
+wget
+
+# Dev tools
+git
+vim
+tmux
+htop
+docker.io

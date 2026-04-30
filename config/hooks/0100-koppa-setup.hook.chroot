@@ -1,0 +1,46 @@
+#!/bin/bash
+# KOPPA-OS: Post-install hook — runs inside chroot during ISO build
+set -e
+
+echo "[KOPPA-OS] Setting up KOPPA..."
+
+# Install KOPPA from PyPI
+pip3 install --no-cache-dir koppa-lang pygls lsprotocol 2>/dev/null || true
+
+# Pre-install security packages for all users
+KOPPA_PKG_DIR="/usr/share/koppa/packages"
+mkdir -p "$KOPPA_PKG_DIR"
+python3 -m koppa pkg install koppa-portscan  2>/dev/null || true
+python3 -m koppa pkg install koppa-jwt-attack 2>/dev/null || true
+python3 -m koppa pkg install koppa-subdomain 2>/dev/null || true
+python3 -m koppa pkg install koppa-hashcrack 2>/dev/null || true
+python3 -m koppa pkg install koppa-webfuzz   2>/dev/null || true
+
+# MOTD
+cat > /etc/motd << 'MOTD'
+
+  ██╗  ██╗ ██████╗ ██████╗ ██████╗  █████╗        ██████╗ ███████╗
+  ██║ ██╔╝██╔═══██╗██╔══██╗██╔══██╗██╔══██╗       ██╔═══██╗██╔════╝
+  █████╔╝ ██║   ██║██████╔╝██████╔╝███████║ █████╗██║   ██║███████╗
+  ██╔═██╗ ██║   ██║██╔═══╝ ██╔═══╝ ██╔══██║ ╚════╝██║   ██║╚════██║
+  ██║  ██╗╚██████╔╝██║     ██║     ██║  ██║       ╚██████╔╝███████║
+  ╚═╝  ╚═╝ ╚═════╝ ╚═╝     ╚═╝     ╚═╝  ╚═╝        ╚═════╝ ╚══════╝
+
+  KOPPA-OS — Advanced Cybersecurity Platform v1.0
+  Powered by KOPPA v3.0.1 + Kali Linux
+
+  Commands:
+    koppa repl                    Interactive KOPPA shell
+    koppa run <script.kop>        Run a KOPPA script
+    koppa pkg install <name>      Install KOPPA package
+    koppa-c2 [host] [port]        Start C2 server
+    koppa pkg audit               Audit installed packages
+
+  Pre-installed: koppa-portscan, koppa-jwt-attack,
+                 koppa-subdomain, koppa-hashcrack, koppa-webfuzz
+
+  Registry: https://guea14012.github.io/koppa-registry-/
+
+MOTD
+
+echo "[KOPPA-OS] Setup complete"

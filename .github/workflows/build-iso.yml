@@ -1,0 +1,110 @@
+name: Build KOPPA-OS ISO
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install live-build
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y \
+            live-build debootstrap xorriso \
+            isolinux syslinux-common squashfs-tools \
+            mtools dosfstools grub-pc-bin grub-efi-amd64-bin \
+            curl python3-pip
+          pip3 install koppa-lang
+
+      - name: Prepare KOPPA files
+        run: |
+          mkdir -p config/includes.chroot/usr/share/koppa
+          mkdir -p config/includes.chroot/usr/bin
+
+          # Install KOPPA into chroot overlay
+          pip3 install koppa-lang --target config/includes.chroot/usr/share/koppa/lib 2>/dev/null || true
+
+          # koppa binary
+          cat > config/includes.chroot/usr/bin/koppa << 'EOF'
+          #!/bin/bash
+          PYTHONPATH=/usr/share/koppa/lib python3 -m koppa "$@" 2>/dev/null || \
+          python3 /usr/share/koppa/src/koppa.py "$@"
+          EOF
+          chmod +x config/includes.chroot/usr/bin/koppa
+
+          # apollo alias
+          ln -sf /usr/bin/koppa config/includes.chroot/usr/bin/apollo 2>/dev/null || \
+          cp config/includes.chroot/usr/bin/koppa config/includes.chroot/usr/bin/apollo
+
+      - name: Configure live-build
+        run: |
+          lb config \
+            --mode kali \
+            --distribution kali-rolling \
+            --architecture amd64 \
+            --archive-areas "main contrib non-free non-free-firmware" \
+            --mirror-bootstrap "http://http.kali.org/kali" \
+            --mirror-chroot "http://http.kali.org/kali" \
+            --mirror-binary "http://http.kali.org/kali" \
+            --updates true \
+            --security true \
+            --binary-images iso-hybrid \
+            --debian-installer none \
+            --bootloaders grub-efi
+
+      - name: Copy config files
+        run: |
+          cp -r config/. ./ 2>/dev/null || true
+
+      - name: Build ISO
+        run: |
+          sudo lb build 2>&1 | tail -50
+        continue-on-error: false
+
+      - name: Rename ISO
+        run: |
+          ls *.iso 2>/dev/null || echo "No ISO found"
+          ISO=$(ls *.iso 2>/dev/null | head -1)
+          if [ -n "$ISO" ]; then
+            mv "$ISO" koppa-os-$(date +%Y%m%d).iso
+          fi
+
+      - name: Upload ISO artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: koppa-os-iso
+          path: "*.iso"
+          retention-days: 14
+        if: always()
+
+      - name: Create GitHub Release (on tag)
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: "*.iso"
+          body: |
+            ## KOPPA-OS Release
+
+            **Pre-installed tools:**
+            - KOPPA v3.0.1 (Security-native DSL)
+            - KOPPA-C2 Framework
+            - koppa-portscan, koppa-jwt-attack, koppa-webfuzz
+            - Full Kali Linux toolset
+            - AI-powered nmap scanner
+
+            **Quick start after boot:**
+            ```bash
+            koppa repl           # Interactive KOPPA shell
+            koppa run script.kop # Run script
+            koppa-c2             # Start C2 server
+            koppa pkg install koppa-portscan
+            ```
