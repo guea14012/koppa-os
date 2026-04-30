@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>KOPPA-OS — Redteam Operating System</title>
+  <link rel="icon" href="favicon.png" type="image/png"/>
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    :root{
+      --red:#cc1111; --red2:#8b0000; --red-glow:rgba(180,0,0,0.5);
+      --text:#e0d0d0; --muted:rgba(200,140,140,0.6);
+      --card:rgba(5,0,0,0.75); --border:rgba(180,30,30,0.3);
+    }
+    html{scroll-behavior:smooth}
+    body{
+      background:#0a0000; color:var(--text);
+      font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;
+      font-size:15px; line-height:1.6; overflow-x:hidden;
+    }
+
+    /* Hero */
+    .hero{
+      position:relative; min-height:100vh;
+      display:flex; flex-direction:column;
+      align-items:center; justify-content:center;
+      text-align:center; padding:40px 24px;
+    }
+    .hero-bg{
+      position:absolute; inset:0; z-index:0;
+      background:url('wallpaper.png') center/cover no-repeat;
+      filter:brightness(.55);
+    }
+    .hero-bg::after{
+      content:''; position:absolute; inset:0;
+      background:linear-gradient(to bottom,transparent 40%,#0a0000 100%);
+    }
+    .hero-content{position:relative;z-index:1}
+    .hero-logo{
+      height:120px; width:auto; margin-bottom:24px;
+      filter:drop-shadow(0 0 24px var(--red-glow));
+    }
+    .hero h1{
+      font-size:clamp(40px,8vw,80px); font-weight:900;
+      letter-spacing:8px; text-transform:uppercase;
+      text-shadow:0 0 40px var(--red-glow);
+    }
+    .hero h1 span{color:var(--red)}
+    .hero-sub{
+      font-size:12px; letter-spacing:6px; color:var(--red);
+      text-transform:uppercase; margin:8px 0 32px;
+    }
+    .hero-tagline{
+      font-size:18px; color:var(--muted); max-width:520px;
+      margin:0 auto 40px;
+    }
+    .hero-btns{display:flex;gap:16px;justify-content:center;flex-wrap:wrap}
+    .btn{
+      padding:13px 32px; border-radius:3px; font-size:13px;
+      font-weight:700; letter-spacing:3px; text-transform:uppercase;
+      text-decoration:none; cursor:pointer; transition:all .2s;
+      display:inline-flex; align-items:center; gap:8px;
+    }
+    .btn-primary{
+      background:linear-gradient(135deg,var(--red2),var(--red));
+      color:#fff; border:1px solid rgba(200,30,30,0.5);
+      box-shadow:0 0 20px rgba(180,0,0,0.4);
+    }
+    .btn-primary:hover{box-shadow:0 0 32px rgba(200,0,0,0.6)}
+    .btn-ghost{
+      background:rgba(180,0,0,0.08); color:var(--text);
+      border:1px solid var(--border);
+    }
+    .btn-ghost:hover{border-color:rgba(200,30,30,0.6);color:#fff}
+
+    /* Nav */
+    nav{
+      position:fixed; top:0; left:0; right:0; z-index:100;
+      display:flex; align-items:center; justify-content:space-between;
+      padding:0 32px; height:58px;
+      background:rgba(5,0,0,0.85); border-bottom:1px solid var(--border);
+      backdrop-filter:blur(12px);
+    }
+    .nav-logo{
+      display:flex; align-items:center; gap:10px;
+      font-size:18px; font-weight:900; letter-spacing:3px;
+      color:#fff; text-decoration:none;
+    }
+    .nav-logo span{color:var(--red)}
+    .nav-logo img{height:28px; filter:drop-shadow(0 0 6px var(--red-glow))}
+    .nav-links{display:flex; gap:24px}
+    .nav-links a{color:var(--muted); text-decoration:none; font-size:12px;
+      letter-spacing:2px; text-transform:uppercase; transition:color .15s}
+    .nav-links a:hover{color:#fff}
+
+    /* Sections */
+    section{max-width:1000px; margin:0 auto; padding:80px 24px}
+    .section-tag{
+      font-size:10px; letter-spacing:5px; color:var(--red);
+      text-transform:uppercase; margin-bottom:12px;
+    }
+    h2{font-size:32px; font-weight:800; letter-spacing:2px; margin-bottom:16px}
+    h2 span{color:var(--red)}
+    .section-desc{color:var(--muted); max-width:560px; margin-bottom:48px}
+
+    /* Feature grid */
+    .features{display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:20px}
+    .feat{
+      background:var(--card); border:1px solid var(--border);
+      border-radius:4px; padding:24px;
+      transition:border-color .2s, box-shadow .2s;
+    }
+    .feat:hover{border-color:rgba(200,30,30,0.6); box-shadow:0 0 20px rgba(180,0,0,0.15)}
+    .feat-icon{font-size:28px; margin-bottom:12px}
+    .feat h3{font-size:15px; font-weight:700; letter-spacing:1px; margin-bottom:8px}
+    .feat p{color:var(--muted); font-size:13px; line-height:1.65}
+
+    /* Terminal demo */
+    .terminal{
+      background:#000; border:1px solid var(--border);
+      border-radius:4px; padding:20px 24px;
+      font-family:'Courier New',monospace; font-size:13px;
+      line-height:1.8; overflow-x:auto;
+    }
+    .terminal .prompt{color:var(--red)}
+    .terminal .cmd{color:#e0d0d0}
+    .terminal .out{color:rgba(200,180,180,0.6)}
+    .terminal .ok{color:#33cc55}
+
+    /* Download section */
+    .download-card{
+      background:var(--card); border:1px solid var(--border);
+      border-radius:4px; padding:40px;
+      display:flex; align-items:center; gap:32px; flex-wrap:wrap;
+    }
+    .download-info{flex:1; min-width:240px}
+    .download-info h3{font-size:20px; font-weight:700; margin-bottom:8px}
+    .download-info p{color:var(--muted); font-size:13px}
+    .download-meta{margin-top:12px; font-size:12px; color:rgba(180,80,80,0.6); letter-spacing:1px}
+
+    /* Divider */
+    .red-line{
+      width:100%; height:1px;
+      background:linear-gradient(90deg,transparent,rgba(180,30,30,0.5),transparent);
+      margin:0;
+    }
+
+    /* Footer */
+    footer{
+      border-top:1px solid var(--border); text-align:center;
+      padding:24px; color:var(--muted); font-size:12px;
+      letter-spacing:1px;
+    }
+    footer a{color:rgba(200,80,80,0.7); text-decoration:none}
+    footer a:hover{color:var(--red)}
+
+    .scanlines{
+      position:fixed; inset:0; z-index:1000; pointer-events:none;
+      background:repeating-linear-gradient(0deg,transparent,transparent 2px,
+        rgba(0,0,0,0.03) 2px,rgba(0,0,0,0.03) 4px);
+    }
+  </style>
+</head>
+<body>
+<div class="scanlines"></div>
+
+<nav>
+  <a class="nav-logo" href="#">
+    <img src="favicon.png" alt="KOPPA-OS"/>
+    KOPPA<span>-OS</span>
+  </a>
+  <div class="nav-links">
+    <a href="#features">Features</a>
+    <a href="#tools">Tools</a>
+    <a href="#download">Download</a>
+    <a href="https://guea14012.github.io/koppa-lang" target="_blank">KOPPA Lang</a>
+  </div>
+</nav>
+
+<!-- Hero -->
+<div class="hero">
+  <div class="hero-bg"></div>
+  <div class="hero-content">
+    <img class="hero-logo" src="logo-login.png" alt="KOPPA-OS"/>
+    <h1>KOPPA<span>-OS</span></h1>
+    <p class="hero-sub">Redteam Operating System</p>
+    <p class="hero-tagline">
+      A Kali-based cybersecurity platform powered by the KOPPA language.
+      Built for offense. Designed for professionals.
+    </p>
+    <div class="hero-btns">
+      <a href="#download" class="btn btn-primary">&#11015; Download ISO</a>
+      <a href="https://guea14012.github.io/koppa-lang/playground.html"
+         class="btn btn-ghost" target="_blank">&#9654; Try KOPPA Online</a>
+    </div>
+  </div>
+</div>
+
+<div class="red-line"></div>
+
+<!-- Features -->
+<section id="features">
+  <p class="section-tag">Why KOPPA-OS</p>
+  <h2>Built for <span>Redteam</span></h2>
+  <p class="section-desc">
+    Everything a professional offensive security operator needs — pre-installed, pre-configured, ready to attack.
+  </p>
+  <div class="features">
+    <div class="feat">
+      <div class="feat-icon">⚡</div>
+      <h3>KOPPA Language Built-in</h3>
+      <p>Security-native DSL with inject, mem, evasion, covert, crypt modules. Write exploits in minutes, not hours.</p>
+    </div>
+    <div class="feat">
+      <div class="feat-icon">🦑</div>
+      <h3>KOPPA-C2 Framework</h3>
+      <p>HTTP/DNS command & control framework. Multi-agent, encrypted comms, operator console included.</p>
+    </div>
+    <div class="feat">
+      <div class="feat-icon">🔴</div>
+      <h3>Full Kali Toolset</h3>
+      <p>All Kali Linux top-10 tools pre-installed alongside KOPPA. nmap, Metasploit, Burp, Wireshark and more.</p>
+    </div>
+    <div class="feat">
+      <div class="feat-icon">📦</div>
+      <h3>220+ Packages Ready</h3>
+      <p>koppa-portscan, koppa-jwt-attack, koppa-subdomain, koppa-webfuzz, koppa-hashcrack pre-installed.</p>
+    </div>
+    <div class="feat">
+      <div class="feat-icon">🤖</div>
+      <h3>AI-Powered Scanner</h3>
+      <p>nmap-ai: machine learning vulnerability classifier trained on real CVE data. Integrated at OS level.</p>
+    </div>
+    <div class="feat">
+      <div class="feat-icon">🛡️</div>
+      <h3>Evasion by Default</h3>
+      <p>KOPPA evasion module: anti-debug, anti-VM, AMSI bypass, ETW patch — all available as one-liners.</p>
+    </div>
+  </div>
+</section>
+
+<div class="red-line"></div>
+
+<!-- Terminal demo -->
+<section id="tools">
+  <p class="section-tag">Quick Start</p>
+  <h2>One Boot, <span>Full Arsenal</span></h2>
+  <p class="section-desc">Boot the ISO and start hacking immediately. No setup required.</p>
+  <div class="terminal">
+    <div><span class="prompt">koppa-os@redteam</span> ~ $ <span class="cmd">koppa repl</span></div>
+    <div class="out">KOPPA v3.0.1 — Advanced Pentesting DSL</div>
+    <div class="out">Type 'help' for commands</div>
+    <br/>
+    <div><span class="prompt">&gt;&gt;&gt;</span> <span class="cmd">import net, log</span></div>
+    <div><span class="prompt">&gt;&gt;&gt;</span> <span class="cmd">let open = net.scan_range("192.168.1.1", 1, 1024)</span></div>
+    <div class="ok">  [+] 22/tcp  OPEN  (ssh)</div>
+    <div class="ok">  [+] 80/tcp  OPEN  (http)</div>
+    <div class="ok">  [+] 443/tcp OPEN  (https)</div>
+    <br/>
+    <div><span class="prompt">koppa-os@redteam</span> ~ $ <span class="cmd">koppa-c2 0.0.0.0 8443</span></div>
+    <div class="ok">[+] KOPPA-C2 Server started on 0.0.0.0:8443</div>
+    <div class="out">Waiting for agents...</div>
+    <br/>
+    <div><span class="prompt">koppa-os@redteam</span> ~ $ <span class="cmd">koppa pkg install koppa-jwt-attack</span></div>
+    <div class="ok">[+] Installed: koppa-jwt-attack</div>
+  </div>
+</section>
+
+<div class="red-line"></div>
+
+<!-- Download -->
+<section id="download">
+  <p class="section-tag">Get KOPPA-OS</p>
+  <h2>Download <span>ISO</span></h2>
+  <div class="download-card">
+    <div class="download-info">
+      <h3>KOPPA-OS v1.0</h3>
+      <p>Kali-based live ISO — boot from USB or VM. Includes KOPPA v3.0.1, full Kali toolset, KOPPA-C2.</p>
+      <p class="download-meta">ARCHITECTURE: amd64 &nbsp;·&nbsp; BASED ON: Kali Linux Rolling &nbsp;·&nbsp; GREETER: KOPPA-OS Custom</p>
+    </div>
+    <div>
+      <a href="https://github.com/guea14012/koppa-os/releases/latest"
+         class="btn btn-primary" target="_blank">&#11015; Download ISO</a>
+      <div style="text-align:center;margin-top:10px;font-size:11px;color:var(--muted)">
+        Built by GitHub Actions
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div>KOPPA-OS &nbsp;·&nbsp; <a href="https://guea14012.github.io/koppa-lang">KOPPA Language</a> &nbsp;·&nbsp; <a href="https://guea14012.github.io/koppa-registry-/">Package Registry</a> &nbsp;·&nbsp; <a href="https://github.com/guea14012/koppa-os">GitHub</a></div>
+  <div style="margin-top:6px">For authorized security testing only &nbsp;·&nbsp; MIT License</div>
+</footer>
+
+<script>
+  // Copy wallpaper filename reference
+  document.querySelector('.hero-bg').style.backgroundImage =
+    "url('wallpaper.png')"
+</script>
+</body>
+</html>

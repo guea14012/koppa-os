@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>KOPPA-OS</title>
+<style>
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+  body {
+    width:100vw; height:100vh; overflow:hidden;
+    background:#000;
+    font-family: 'Courier New', monospace;
+    color:#fff;
+    cursor:default;
+  }
+
+  /* Background image */
+  .bg {
+    position:fixed; inset:0; z-index:0;
+    background: url('bg.png') center center / cover no-repeat;
+    filter: brightness(0.75);
+  }
+
+  /* Red glow overlay */
+  .bg::after {
+    content:'';
+    position:absolute; inset:0;
+    background: radial-gradient(ellipse at 50% 30%,
+      rgba(180,0,0,0.35) 0%,
+      rgba(0,0,0,0.0) 65%);
+  }
+
+  /* HUD corners */
+  .hud-tl, .hud-tr, .hud-bl, .hud-br {
+    position:fixed; z-index:5;
+    font-size:10px; color:rgba(180,30,30,0.7);
+    letter-spacing:1px; line-height:1.8;
+    text-transform:uppercase;
+  }
+  .hud-tl { top:20px; left:24px; text-align:left; }
+  .hud-tr { top:20px; right:24px; text-align:right; }
+  .hud-bl { bottom:20px; left:24px; text-align:left; }
+  .hud-br { bottom:20px; right:24px; text-align:right; }
+
+  .hud-tl::before {
+    content:'';
+    display:block; width:60px; height:1px;
+    background:rgba(180,30,30,0.5); margin-bottom:6px;
+  }
+  .hud-bl::after {
+    content:'';
+    display:block; width:60px; height:1px;
+    background:rgba(180,30,30,0.5); margin-top:6px;
+  }
+
+  /* Clock */
+  #clock {
+    position:fixed; top:20px; left:50%; transform:translateX(-50%);
+    z-index:5; font-size:13px; color:rgba(200,50,50,0.8);
+    letter-spacing:3px;
+  }
+
+  /* Login card */
+  .card {
+    position:fixed; top:50%; left:50%;
+    transform:translate(-50%, -50%);
+    z-index:10;
+    width:360px;
+    background: rgba(5,0,0,0.72);
+    border:1px solid rgba(180,30,30,0.4);
+    border-radius:4px;
+    padding:36px 32px 28px;
+    backdrop-filter: blur(12px);
+    box-shadow: 0 0 60px rgba(180,0,0,0.25),
+                inset 0 0 40px rgba(180,0,0,0.05);
+  }
+
+  /* Corner decorations on card */
+  .card::before, .card::after {
+    content:'';
+    position:absolute;
+    width:12px; height:12px;
+    border-color:rgba(200,30,30,0.8);
+    border-style:solid;
+  }
+  .card::before { top:-1px; left:-1px; border-width:2px 0 0 2px; }
+  .card::after  { bottom:-1px; right:-1px; border-width:0 2px 2px 0; }
+
+  /* Logo */
+  .logo-wrap {
+    text-align:center; margin-bottom:20px;
+  }
+  .logo-wrap img {
+    height:72px; width:auto;
+    filter: drop-shadow(0 0 12px rgba(200,30,30,0.6));
+  }
+  .logo-title {
+    font-size:22px; font-weight:900; letter-spacing:4px;
+    color:#fff; margin-top:8px;
+    text-shadow: 0 0 20px rgba(200,30,30,0.8);
+  }
+  .logo-title span { color:#cc2222; }
+  .logo-sub {
+    font-size:9px; letter-spacing:4px; color:rgba(180,30,30,0.8);
+    text-transform:uppercase; margin-top:3px;
+  }
+
+  /* Divider */
+  .divider {
+    width:100%; height:1px;
+    background:linear-gradient(90deg,transparent,rgba(180,30,30,0.5),transparent);
+    margin:16px 0;
+  }
+
+  /* Input group */
+  .input-group {
+    display:flex; align-items:center; gap:10px;
+    background:rgba(255,255,255,0.04);
+    border:1px solid rgba(180,30,30,0.25);
+    border-radius:3px; padding:10px 14px;
+    margin-bottom:12px;
+    transition:border-color .2s;
+  }
+  .input-group:focus-within {
+    border-color:rgba(200,30,30,0.7);
+    box-shadow:0 0 8px rgba(200,30,30,0.2);
+  }
+  .input-group svg { opacity:.5; flex-shrink:0; }
+  .input-group input {
+    flex:1; background:transparent; border:none; outline:none;
+    color:#e0d0d0; font-size:13px; font-family:inherit;
+    letter-spacing:1px;
+  }
+  .input-group input::placeholder { color:rgba(180,140,140,0.45); font-size:12px; }
+
+  /* Login button */
+  .btn-login {
+    width:100%; padding:11px;
+    background:linear-gradient(135deg, #8b0000, #cc1111);
+    border:1px solid rgba(200,30,30,0.5);
+    border-radius:3px; color:#fff;
+    font-family:inherit; font-size:13px; font-weight:700;
+    letter-spacing:4px; text-transform:uppercase;
+    cursor:pointer; margin-top:4px;
+    transition:all .2s;
+    box-shadow:0 0 16px rgba(180,0,0,0.3);
+  }
+  .btn-login:hover {
+    background:linear-gradient(135deg, #a00000, #dd2222);
+    box-shadow:0 0 24px rgba(200,0,0,0.5);
+  }
+  .btn-login:active { transform:scale(0.98); }
+  .btn-login:disabled { opacity:.5; cursor:not-allowed; }
+
+  /* Token link */
+  .token-link {
+    display:flex; align-items:center; justify-content:center;
+    gap:6px; margin-top:14px;
+    font-size:10px; letter-spacing:2px; color:rgba(180,80,80,0.65);
+    text-transform:uppercase; cursor:pointer;
+    transition:color .15s;
+  }
+  .token-link:hover { color:rgba(200,80,80,0.9); }
+
+  /* Status message */
+  #status {
+    text-align:center; margin-top:12px;
+    font-size:11px; letter-spacing:2px;
+    min-height:16px; color:#cc3333;
+  }
+  #status.ok { color:#33cc55; }
+
+  /* Session select (hidden by default, minimal) */
+  #session-select {
+    position:fixed; bottom:50px; left:50%;
+    transform:translateX(-50%);
+    z-index:10;
+    background:rgba(5,0,0,0.8);
+    border:1px solid rgba(180,30,30,0.3);
+    border-radius:3px; padding:4px 10px;
+    color:rgba(180,80,80,0.7); font-size:10px;
+    letter-spacing:2px; outline:none; cursor:pointer;
+  }
+  #session-select option { background:#1a0000; }
+
+  /* Scan line effect */
+  .scanlines {
+    position:fixed; inset:0; z-index:3; pointer-events:none;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0,0,0,0.04) 2px,
+      rgba(0,0,0,0.04) 4px
+    );
+  }
+
+  /* Typing animation */
+  @keyframes blink { 50% { opacity:0; } }
+  .cursor { animation: blink 1s step-start infinite; }
+
+  /* Fade in */
+  @keyframes fadeIn { from{opacity:0;transform:translate(-50%,-48%)} to{opacity:1;transform:translate(-50%,-50%)} }
+  .card { animation: fadeIn .6s ease-out; }
+</style>
+</head>
+<body>
+
+<div class="bg"></div>
+<div class="scanlines"></div>
+
+<!-- HUD Corners -->
+<div class="hud-tl">
+  <div id="hud-hostname">KOPPA-OS</div>
+  <div id="hud-ip">:: SECURE TERMINAL ::</div>
+  <div>REDTEAM v1.0</div>
+</div>
+<div class="hud-tr">
+  <div id="hud-date"></div>
+  <div>OFFENSE IS FREEDOM</div>
+  <div style="color:rgba(200,30,30,0.5)">● ONLINE</div>
+</div>
+<div class="hud-bl">
+  <div>KOPPA v3.0.1</div>
+  <div>BUILT ON KALI LINUX</div>
+</div>
+<div class="hud-br">
+  <div>NO MERCY FOR RULES</div>
+  <div>NO LIMIT, NO LIMITS</div>
+</div>
+
+<div id="clock"></div>
+
+<!-- Login Card -->
+<div class="card">
+  <div class="logo-wrap">
+    <img src="logo.png" alt="KOPPA-OS"/>
+    <div class="logo-title">KOPPA<span>-OS</span></div>
+    <div class="logo-sub">Redteam Operating System</div>
+  </div>
+
+  <div class="divider"></div>
+
+  <div class="input-group">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(180,80,80,0.7)" stroke-width="2">
+      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+      <circle cx="12" cy="7" r="4"/>
+    </svg>
+    <input type="text" id="username" placeholder="User Name" autocomplete="off" spellcheck="false"/>
+  </div>
+
+  <div class="input-group">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(180,80,80,0.7)" stroke-width="2">
+      <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+      <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+    </svg>
+    <input type="password" id="password" placeholder="Password" autocomplete="off"
+           onkeydown="if(event.key==='Enter')doLogin()"/>
+  </div>
+
+  <button class="btn-login" id="btn-login" onclick="doLogin()">Login</button>
+
+  <div class="token-link" onclick="showTokenInput()">
+    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <rect x="2" y="5" width="20" height="14" rx="2"/>
+      <line x1="2" y1="10" x2="22" y2="10"/>
+    </svg>
+    Login with Hardware Token
+  </div>
+
+  <div id="status"></div>
+</div>
+
+<!-- Session selector -->
+<select id="session-select">
+  <option value="xfce">XFCE</option>
+  <option value="gnome">GNOME</option>
+  <option value="kde">KDE Plasma</option>
+</select>
+
+<script>
+// ── Clock ─────────────────────────────────────────────────────────────────────
+function updateClock() {
+  const now = new Date()
+  const pad  = n => String(n).padStart(2, '0')
+  document.getElementById('clock').textContent =
+    `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`
+  document.getElementById('hud-date').textContent =
+    now.toLocaleDateString('en-US', {weekday:'short', month:'short', day:'numeric', year:'numeric'}).toUpperCase()
+}
+setInterval(updateClock, 1000)
+updateClock()
+
+// ── LightDM API ───────────────────────────────────────────────────────────────
+function setStatus(msg, ok = false) {
+  const el = document.getElementById('status')
+  el.textContent = msg
+  el.className = ok ? 'ok' : ''
+}
+
+function doLogin() {
+  const user = document.getElementById('username').value.trim()
+  const pass = document.getElementById('password').value
+  const btn  = document.getElementById('btn-login')
+
+  if (!user) { setStatus('Enter username'); return }
+  if (!pass) { setStatus('Enter password'); return }
+
+  btn.disabled = true
+  btn.textContent = 'AUTHENTICATING...'
+  setStatus('')
+
+  try {
+    // LightDM webkit greeter API
+    if (typeof lightdm !== 'undefined') {
+      lightdm.cancel_authentication()
+      lightdm.authenticate(user)
+
+      lightdm.authentication_complete = function() {
+        if (lightdm.is_authenticated) {
+          setStatus('ACCESS GRANTED', true)
+          btn.textContent = 'LOADING...'
+          const session = document.getElementById('session-select').value
+          lightdm.start_session_sync(session)
+        } else {
+          setStatus('ACCESS DENIED — INVALID CREDENTIALS')
+          btn.disabled = false
+          btn.textContent = 'LOGIN'
+          document.getElementById('password').value = ''
+          document.getElementById('password').focus()
+        }
+      }
+      lightdm.respond(pass)
+    } else {
+      // Development fallback
+      setTimeout(() => {
+        setStatus('LightDM not available (dev mode)', false)
+        btn.disabled = false
+        btn.textContent = 'LOGIN'
+      }, 1200)
+    }
+  } catch(e) {
+    setStatus('Error: ' + e.message)
+    btn.disabled = false
+    btn.textContent = 'LOGIN'
+  }
+}
+
+function showTokenInput() {
+  setStatus('Hardware token: insert your YubiKey and press the button', false)
+}
+
+// ── Populate hostname if available ────────────────────────────────────────────
+try {
+  if (typeof lightdm !== 'undefined' && lightdm.hostname) {
+    document.getElementById('hud-hostname').textContent = lightdm.hostname.toUpperCase()
+  }
+} catch(_) {}
+
+// Focus username on load
+window.onload = () => document.getElementById('username').focus()
+
+// Enter key on username → move to password
+document.getElementById('username').addEventListener('keydown', e => {
+  if (e.key === 'Enter') document.getElementById('password').focus()
+})
+</script>
+</body>
+</html>

@@ -29,3 +29,10 @@ vim
 tmux
 htop
 docker.io
+
+# Desktop / Display manager
+xfce4
+xfce4-terminal
+lightdm
+lightdm-webkit2-greeter
+
