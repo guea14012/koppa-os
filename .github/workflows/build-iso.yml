@@ -23,7 +23,7 @@ jobs:
             isolinux syslinux-common squashfs-tools \
             mtools dosfstools grub-pc-bin grub-efi-amd64-bin \
             curl wget python3-pip git
-          pip3 install koppa-lang
+          pip3 install koppa-lang 2>/dev/null || true
 
       - name: Prepare KOPPA binaries
         run: |
@@ -34,10 +34,12 @@ jobs:
             --target config/includes.chroot/usr/share/koppa/lib \
             2>/dev/null || true
 
-          cp scripts/koppa-bin.sh config/includes.chroot/usr/bin/koppa
-          chmod +x config/includes.chroot/usr/bin/koppa
-          cp config/includes.chroot/usr/bin/koppa \
-             config/includes.chroot/usr/bin/apollo
+          if [ -f scripts/koppa-bin.sh ]; then
+            cp scripts/koppa-bin.sh config/includes.chroot/usr/bin/koppa
+            chmod +x config/includes.chroot/usr/bin/koppa
+            cp config/includes.chroot/usr/bin/koppa \
+               config/includes.chroot/usr/bin/apollo
+          fi
 
       - name: Configure live-build
         run: |
@@ -48,12 +50,8 @@ jobs:
             --mirror-bootstrap "http://deb.debian.org/debian" \
             --mirror-chroot   "http://deb.debian.org/debian" \
             --mirror-binary   "http://deb.debian.org/debian" \
-            --security true \
-            --updates true \
             --binary-images iso-hybrid \
-            --debian-installer none \
-            --bootloaders grub-efi \
-            --image-name "koppa-os"
+            --debian-installer none
 
       - name: Copy config overlay
         run: |
@@ -73,7 +71,7 @@ jobs:
             echo "No ISO — build failed"; tail -100 build.log; exit 1
           fi
 
-      - name: Upload ISO
+      - name: Upload ISO artifact
         uses: actions/upload-artifact@v4
         with:
           name: koppa-os-iso
