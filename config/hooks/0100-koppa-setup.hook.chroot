@@ -2,30 +2,105 @@
 # KOPPA-OS: Post-install hook — runs inside chroot during ISO build
 set -e
 
-echo "[KOPPA-OS] Setting up KOPPA Language..."
+ARCH="amd64"
+GOTOOLS="/usr/local/bin"
 
-# Install KOPPA from PyPI
-pip3 install --no-cache-dir koppa-lang pygls lsprotocol 2>/dev/null || true
+echo "[KOPPA-OS] Installing KOPPA Language..."
+pip3 install --no-cache-dir koppa-lang pygls lsprotocol --break-system-packages 2>/dev/null || true
 
-# Install Metasploit if not in package list (Debian repo may not have it)
-if ! command -v msfconsole &>/dev/null; then
-  curl -fsSL https://apt.metasploit.com/metasploit-framework.gpg | \
-    gpg --dearmor -o /usr/share/keyrings/metasploit.gpg 2>/dev/null || true
-  echo "deb [signed-by=/usr/share/keyrings/metasploit.gpg] \
-    https://apt.metasploit.com/ buster main" \
-    > /etc/apt/sources.list.d/metasploit.list 2>/dev/null || true
-  apt-get update -qq 2>/dev/null && \
-    apt-get install -y metasploit-framework 2>/dev/null || true
+# ── Metasploit Framework ──────────────────────────────────────────────────────
+echo "[KOPPA-OS] Installing Metasploit..."
+curl -fsSL https://apt.metasploit.com/metasploit-framework.gpg \
+  | gpg --dearmor -o /usr/share/keyrings/metasploit.gpg 2>/dev/null || true
+echo "deb [signed-by=/usr/share/keyrings/metasploit.gpg] https://apt.metasploit.com/ buster main" \
+  > /etc/apt/sources.list.d/metasploit.list
+apt-get update -qq 2>/dev/null && apt-get install -y metasploit-framework 2>/dev/null || true
+
+# ── gobuster ─────────────────────────────────────────────────────────────────
+echo "[KOPPA-OS] Installing gobuster..."
+GOBUSTER=$(curl -fsSL https://api.github.com/repos/OJ/gobuster/releases/latest \
+  | python3 -c "import sys,json; r=json.load(sys.stdin)['assets']; \
+    print(next(a['browser_download_url'] for a in r if 'linux_amd64' in a['name'] and a['name'].endswith('.tar.gz')))" \
+  2>/dev/null || true)
+if [ -n "$GOBUSTER" ]; then
+  curl -fsSL "$GOBUSTER" | tar -xz -C "$GOTOOLS" gobuster 2>/dev/null || true
 fi
 
-# Pre-install KOPPA security packages
-python3 -m koppa pkg install koppa-portscan  2>/dev/null || true
+# ── ffuf ─────────────────────────────────────────────────────────────────────
+echo "[KOPPA-OS] Installing ffuf..."
+FFUF=$(curl -fsSL https://api.github.com/repos/ffuf/ffuf/releases/latest \
+  | python3 -c "import sys,json; r=json.load(sys.stdin)['assets']; \
+    print(next(a['browser_download_url'] for a in r if 'linux_amd64' in a['name'] and a['name'].endswith('.tar.gz')))" \
+  2>/dev/null || true)
+if [ -n "$FFUF" ]; then
+  curl -fsSL "$FFUF" | tar -xz -C "$GOTOOLS" ffuf 2>/dev/null || true
+fi
+
+# ── nuclei ────────────────────────────────────────────────────────────────────
+echo "[KOPPA-OS] Installing nuclei..."
+NUCLEI=$(curl -fsSL https://api.github.com/repos/projectdiscovery/nuclei/releases/latest \
+  | python3 -c "import sys,json; r=json.load(sys.stdin)['assets']; \
+    print(next(a['browser_download_url'] for a in r if 'linux_amd64' in a['name'] and a['name'].endswith('.zip')))" \
+  2>/dev/null || true)
+if [ -n "$NUCLEI" ]; then
+  curl -fsSL "$NUCLEI" -o /tmp/nuclei.zip && \
+    unzip -q /tmp/nuclei.zip nuclei -d "$GOTOOLS" && \
+    chmod +x "$GOTOOLS/nuclei" && rm /tmp/nuclei.zip 2>/dev/null || true
+fi
+
+# ── amass ─────────────────────────────────────────────────────────────────────
+echo "[KOPPA-OS] Installing amass..."
+AMASS=$(curl -fsSL https://api.github.com/repos/owasp-amass/amass/releases/latest \
+  | python3 -c "import sys,json; r=json.load(sys.stdin)['assets']; \
+    print(next(a['browser_download_url'] for a in r if 'linux_amd64' in a['name'] and a['name'].endswith('.zip')))" \
+  2>/dev/null || true)
+if [ -n "$AMASS" ]; then
+  curl -fsSL "$AMASS" -o /tmp/amass.zip && \
+    unzip -q /tmp/amass.zip "*/amass" -d /tmp/amass_dir && \
+    mv /tmp/amass_dir/*/amass "$GOTOOLS/amass" && \
+    chmod +x "$GOTOOLS/amass" && rm -rf /tmp/amass.zip /tmp/amass_dir 2>/dev/null || true
+fi
+
+# ── ExploitDB / searchsploit ──────────────────────────────────────────────────
+echo "[KOPPA-OS] Installing ExploitDB..."
+git clone --depth=1 https://gitlab.com/exploit-database/exploitdb.git \
+  /opt/exploitdb 2>/dev/null || true
+if [ -f /opt/exploitdb/searchsploit ]; then
+  ln -sf /opt/exploitdb/searchsploit "$GOTOOLS/searchsploit"
+  mkdir -p /etc/exploitdb
+  sed 's|path_array+=(.*)|path_array+=("/opt/exploitdb")|' \
+    /opt/exploitdb/.searchsploit_rc > /etc/exploitdb/searchsploit.rc 2>/dev/null || true
+fi
+
+# ── CrackMapExec ──────────────────────────────────────────────────────────────
+echo "[KOPPA-OS] Installing CrackMapExec..."
+pip3 install crackmapexec --break-system-packages 2>/dev/null || true
+
+# ── Volatility3 ───────────────────────────────────────────────────────────────
+echo "[KOPPA-OS] Installing Volatility3..."
+pip3 install volatility3 --break-system-packages 2>/dev/null || true
+
+# ── evil-winrm ────────────────────────────────────────────────────────────────
+echo "[KOPPA-OS] Installing evil-winrm..."
+gem install evil-winrm 2>/dev/null || true
+
+# ── sublist3r ─────────────────────────────────────────────────────────────────
+pip3 install sublist3r --break-system-packages 2>/dev/null || true
+
+# ── KOPPA packages pre-install ────────────────────────────────────────────────
+echo "[KOPPA-OS] Installing KOPPA packages..."
+python3 -m koppa pkg install koppa-portscan   2>/dev/null || true
 python3 -m koppa pkg install koppa-jwt-attack 2>/dev/null || true
 python3 -m koppa pkg install koppa-subdomain  2>/dev/null || true
 python3 -m koppa pkg install koppa-hashcrack  2>/dev/null || true
 python3 -m koppa pkg install koppa-webfuzz    2>/dev/null || true
+python3 -m koppa pkg install koppa-recon      2>/dev/null || true
+python3 -m koppa pkg install koppa-exploit    2>/dev/null || true
+python3 -m koppa pkg install koppa-evasion    2>/dev/null || true
+python3 -m koppa pkg install koppa-c2-client  2>/dev/null || true
+python3 -m koppa pkg install koppa-bruteforce 2>/dev/null || true
 
-# MOTD
+# ── MOTD ──────────────────────────────────────────────────────────────────────
 cat > /etc/motd << 'MOTD'
 
   ██╗  ██╗ ██████╗ ██████╗ ██████╗  █████╗        ██████╗ ███████╗
@@ -36,20 +111,20 @@ cat > /etc/motd << 'MOTD'
   ╚═╝  ╚═╝ ╚═════╝ ╚═╝     ╚═╝     ╚═╝  ╚═╝        ╚═════╝ ╚══════╝
 
   KOPPA-OS v1.0 — Independent Redteam Platform
-  Built on Debian 12 · Powered by KOPPA v3.0.1
+  Built on Debian 12 Bookworm · Powered by KOPPA v3.0.1
 
-  Commands:
-    koppa repl                    Interactive KOPPA shell
-    koppa run <script.kop>        Run a KOPPA script
-    koppa pkg install <name>      Install KOPPA package
-    koppa-c2 [host] [port]        Start C2 server
-    koppa pkg audit               Security audit
+  koppa repl                    Interactive KOPPA shell
+  koppa run <script.kop>        Run KOPPA script
+  koppa pkg install <name>      Install from KOPPA registry
+  koppa pkg list                List available packages
+  koppa-c2 [host] [port]        Start C2 server
 
-  Pre-installed: koppa-portscan, koppa-jwt-attack,
-                 koppa-subdomain, koppa-hashcrack, koppa-webfuzz
+  Top tools: nmap metasploit sqlmap hydra hashcat aircrack-ng
+             gobuster ffuf nuclei amass searchsploit radare2
+             crackmapexec evil-winrm volatility3 wireshark
 
-  Registry: https://guea14012.github.io/koppa-registry-/
+  KOPPA Registry: https://guea14012.github.io/koppa-registry-/
 
 MOTD
 
-echo "[KOPPA-OS] Setup complete — Debian base, KOPPA ready"
+echo "[KOPPA-OS] Setup complete."

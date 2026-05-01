@@ -1,0 +1,58 @@
+## koppa package: koppa-webfuzz
+## version: 2.0.0
+## description: Web fuzzer — directory/file brute-force, parameter injection, vhost discovery
+## author: KOPPA-OS
+## tags: web, fuzzing, recon
+
+import net, log, sys, crypt
+
+let DEFAULT_WORDLIST = "/usr/share/wordlists/dirb/common.txt"
+let DEFAULT_THREADS  = 20
+
+fn fuzz_dirs(url, wordlist, threads) {
+    log.info("[*] Dir fuzz: " + url)
+    let words = sys.read_lines(wordlist)
+    let hits  = net.http_fuzz(url, words, threads, [200, 201, 301, 302, 403])
+    for h in hits {
+        log.ok("[+] " + h.status + "  " + h.url + "  (" + h.size + " bytes)")
+    }
+    return hits
+}
+
+fn fuzz_params(url, param, wordlist) {
+    log.info("[*] Param fuzz: " + url + " ?" + param + "=...")
+    let words = sys.read_lines(wordlist)
+    let hits  = net.http_param_fuzz(url, param, words, [200])
+    for h in hits {
+        log.ok("[+] " + h.value + "  →  " + h.status)
+    }
+    return hits
+}
+
+fn fuzz_vhost(ip, wordlist, domain) {
+    log.info("[*] Vhost fuzz: " + ip + " (base: " + domain + ")")
+    let words = sys.read_lines(wordlist)
+    let hits  = net.vhost_fuzz(ip, words, domain)
+    for h in hits {
+        log.ok("[+] " + h.vhost + "  (" + h.size + " bytes)")
+    }
+    return hits
+}
+
+fn main(args) {
+    log.info("[koppa-webfuzz] Web Fuzzer v2.0")
+    let url      = args[0] or sys.prompt("URL: ")
+    let mode     = args[1] or "dir"
+    let wordlist = args[2] or DEFAULT_WORDLIST
+
+    if mode == "dir"   { return fuzz_dirs(url, wordlist, DEFAULT_THREADS) }
+    if mode == "param" {
+        let param = args[3] or sys.prompt("Parameter name: ")
+        return fuzz_params(url, param, wordlist)
+    }
+    if mode == "vhost" {
+        let domain = args[3] or sys.prompt("Base domain: ")
+        return fuzz_vhost(url, wordlist, domain)
+    }
+    log.err("Unknown mode. Use: dir | param | vhost")
+}

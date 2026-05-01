@@ -1,4 +1,4 @@
-# KOPPA-OS — Package List (Debian Bookworm)
+# KOPPA-OS — Top 50 Security Tools (Debian Bookworm)
 
 # ── Core system ───────────────────────────────────────────────────────────────
 bash
@@ -17,59 +17,78 @@ unzip
 p7zip-full
 file
 binutils
-
-# ── Python ────────────────────────────────────────────────────────────────────
+build-essential
 python3
 python3-pip
-python3-requests
-python3-cryptography
-python3-pycryptodome
-python3-numpy
-python3-scapy
+ruby
 
-# ── Network tools ─────────────────────────────────────────────────────────────
+# ── Network recon (1-10) ──────────────────────────────────────────────────────
 nmap
-netcat-openbsd
+masscan
+hping3
+arp-scan
+netdiscover
+onesixtyone
+p0f
 tcpdump
 wireshark
 tshark
-net-tools
-dnsutils
-iputils-ping
-traceroute
-whois
-iproute2
-arp-scan
-masscan
-hping3
-socat
 
-# ── Web tools ─────────────────────────────────────────────────────────────────
+# ── Web attack (11-17) ────────────────────────────────────────────────────────
 nikto
 sqlmap
 dirb
 wfuzz
+whatweb
+sslscan
+net-tools
 
-# ── Password & crypto ─────────────────────────────────────────────────────────
+# ── Password attack (18-23) ───────────────────────────────────────────────────
 john
 hashcat
 hydra
 medusa
+ncrack
 crunch
 
-# ── Wireless ──────────────────────────────────────────────────────────────────
-aircrack-ng
+# ── SMB / AD (24-27) ─────────────────────────────────────────────────────────
+smbclient
+enum4linux
+python3-impacket
+samdump2
 
-# ── Forensics ─────────────────────────────────────────────────────────────────
+# ── DNS / OSINT (28-32) ───────────────────────────────────────────────────────
+dnsutils
+dnsrecon
+python3-theHarvester
+whois
+netcat-openbsd
+
+# ── Wireless (33-34) ─────────────────────────────────────────────────────────
+aircrack-ng
+reaver
+
+# ── Forensics / Stego (35-40) ────────────────────────────────────────────────
 binwalk
 foremost
 hexedit
+steghide
+libimage-exiftool-perl
+dcfldd
 
-# ── Reverse engineering ───────────────────────────────────────────────────────
+# ── Reverse engineering (41-44) ───────────────────────────────────────────────
 gdb
 radare2
 ltrace
 strace
+
+# ── Infra / Pivot (45-50) ────────────────────────────────────────────────────
+socat
+proxychains4
+openvpn
+tor
+openssh-client
+docker.io
 
 # ── Desktop ───────────────────────────────────────────────────────────────────
 xfce4
@@ -78,10 +97,3 @@ xfce4-taskmanager
 lightdm
 lightdm-gtk-greeter
 firefox-esr
-
-# ── Misc ──────────────────────────────────────────────────────────────────────
-docker.io
-openssh-client
-openvpn
-tor
-proxychains4

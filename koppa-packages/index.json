@@ -1,0 +1,70 @@
+{
+  "registry": "KOPPA Package Registry",
+  "version": "1.0",
+  "base_url": "https://raw.githubusercontent.com/guea14012/koppa-os/main/koppa-packages",
+  "packages": [
+    {
+      "name": "koppa-portscan",
+      "version": "2.0.0",
+      "description": "Advanced TCP/UDP port scanner with service detection and banner grabbing",
+      "tags": ["network", "recon", "scanning"],
+      "file": "koppa-portscan.kpkg"
+    },
+    {
+      "name": "koppa-webfuzz",
+      "version": "2.0.0",
+      "description": "Web fuzzer — directory/file brute-force, parameter injection, vhost discovery",
+      "tags": ["web", "fuzzing", "recon"],
+      "file": "koppa-webfuzz.kpkg"
+    },
+    {
+      "name": "koppa-jwt-attack",
+      "version": "2.0.0",
+      "description": "JWT token attack toolkit — decode, forge, alg-none, brute-force secret",
+      "tags": ["web", "auth", "jwt", "crypto"],
+      "file": "koppa-jwt-attack.kpkg"
+    },
+    {
+      "name": "koppa-hashcrack",
+      "version": "2.0.0",
+      "description": "Hash identification and cracking — MD5/SHA/bcrypt/NTLM wordlist & rules",
+      "tags": ["crypto", "password", "cracking"],
+      "file": "koppa-hashcrack.kpkg"
+    },
+    {
+      "name": "koppa-recon",
+      "version": "2.0.0",
+      "description": "Passive & active recon — subdomain enum, DNS, WHOIS, email harvest",
+      "tags": ["recon", "osint", "subdomain", "dns"],
+      "file": "koppa-recon.kpkg"
+    },
+    {
+      "name": "koppa-exploit",
+      "version": "2.0.0",
+      "description": "Exploit helper — CVE lookup, payload gen, shellcode, reverse shell builder",
+      "tags": ["exploit", "payload", "shellcode", "cve"],
+      "file": "koppa-exploit.kpkg"
+    },
+    {
+      "name": "koppa-evasion",
+      "version": "2.0.0",
+      "description": "AV/EDR evasion — AMSI bypass, ETW patch, anti-debug, anti-VM, obfuscation",
+      "tags": ["evasion", "av", "amsi", "etw"],
+      "file": "koppa-evasion.kpkg"
+    },
+    {
+      "name": "koppa-bruteforce",
+      "version": "2.0.0",
+      "description": "Multi-protocol brute forcer — SSH, FTP, HTTP, SMB, RDP, MySQL, Redis",
+      "tags": ["bruteforce", "credential", "password"],
+      "file": "koppa-bruteforce.kpkg"
+    },
+    {
+      "name": "koppa-c2-client",
+      "version": "2.0.0",
+      "description": "KOPPA-C2 agent — connect to C2, execute tasks, exfil data over HTTP/DNS",
+      "tags": ["c2", "agent", "covert", "exfil"],
+      "file": "koppa-c2-client.kpkg"
+    }
+  ]
+}

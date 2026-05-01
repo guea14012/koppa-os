@@ -1,0 +1,68 @@
+## koppa package: koppa-hashcrack
+## version: 2.0.0
+## description: Hash identification and cracking — MD5/SHA/bcrypt/NTLM wordlist & rules
+## author: KOPPA-OS
+## tags: crypto, password, cracking
+
+import crypt, log, sys
+
+fn identify(hash) {
+    let t = crypt.hash_identify(hash)
+    log.info("[*] Hash type: " + t)
+    return t
+}
+
+fn crack_wordlist(hash, wordlist) {
+    log.info("[*] Wordlist attack: " + hash)
+    let words = sys.read_lines(wordlist)
+    for word in words {
+        if crypt.hash_match(hash, word) {
+            log.ok("[+] Cracked: " + word)
+            return word
+        }
+    }
+    log.err("[-] Not cracked")
+    return ""
+}
+
+fn crack_rules(hash, wordlist, rules) {
+    log.info("[*] Rules attack: " + hash)
+    let words = sys.read_lines(wordlist)
+    for word in words {
+        for rule in rules {
+            let mutated = crypt.apply_rule(word, rule)
+            if crypt.hash_match(hash, mutated) {
+                log.ok("[+] Cracked (rule=" + rule + "): " + mutated)
+                return mutated
+            }
+        }
+    }
+    log.err("[-] Not cracked")
+    return ""
+}
+
+fn crack_ntlm(ntlm_hash, wordlist) {
+    log.info("[*] NTLM crack: " + ntlm_hash)
+    let words = sys.read_lines(wordlist)
+    for word in words {
+        if crypt.ntlm(word) == ntlm_hash.lower() {
+            log.ok("[+] NTLM cracked: " + word)
+            return word
+        }
+    }
+    log.err("[-] Not cracked")
+    return ""
+}
+
+fn main(args) {
+    log.info("[koppa-hashcrack] Hash Cracker v2.0")
+    let hash = args[0] or sys.prompt("Hash: ")
+    let mode = args[1] or "identify"
+    let wl   = args[2] or "/usr/share/wordlists/rockyou.txt"
+    let rules = ["upper", "lower", "append_year", "leet", "reverse"]
+
+    if mode == "identify"  { identify(hash) }
+    if mode == "wordlist"  { crack_wordlist(hash, wl) }
+    if mode == "rules"     { crack_rules(hash, wl, rules) }
+    if mode == "ntlm"      { crack_ntlm(hash, wl) }
+}

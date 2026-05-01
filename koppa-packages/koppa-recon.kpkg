@@ -1,0 +1,69 @@
+## koppa package: koppa-recon
+## version: 2.0.0
+## description: Passive & active recon — subdomain enum, DNS, WHOIS, shodan, email harvest
+## author: KOPPA-OS
+## tags: recon, osint, subdomain, dns
+
+import net, log, sys
+
+fn subdomain_enum(domain, wordlist) {
+    log.info("[*] Subdomain enum: " + domain)
+    let words = sys.read_lines(wordlist or "/usr/share/wordlists/dirb/common.txt")
+    let found = []
+    for word in words {
+        let host = word + "." + domain
+        let ip   = net.dns_resolve(host)
+        if ip != "" {
+            log.ok("[+] " + host + "  →  " + ip)
+            found.push({ host: host, ip: ip })
+        }
+    }
+    return found
+}
+
+fn dns_enum(domain) {
+    log.info("[*] DNS enumeration: " + domain)
+    for rtype in ["A", "AAAA", "MX", "NS", "TXT", "CNAME", "SOA"] {
+        let records = net.dns_query(domain, rtype)
+        for r in records {
+            log.ok("[" + rtype + "] " + r)
+        }
+    }
+}
+
+fn whois_lookup(target) {
+    log.info("[*] WHOIS: " + target)
+    let result = net.whois(target)
+    log.muted(result)
+    return result
+}
+
+fn email_harvest(domain) {
+    log.info("[*] Email harvest: " + domain)
+    let emails = net.email_search(domain)
+    for e in emails {
+        log.ok("[+] " + e)
+    }
+    return emails
+}
+
+fn port_service_map(target) {
+    log.info("[*] Service map: " + target)
+    let svcs = net.service_detect(target)
+    for s in svcs {
+        log.ok("[+] " + s.port + "/" + s.proto + "  " + s.service + "  " + s.version)
+    }
+    return svcs
+}
+
+fn main(args) {
+    log.info("[koppa-recon] Recon Toolkit v2.0")
+    let target = args[0] or sys.prompt("Domain/IP: ")
+    let mode   = args[1] or "dns"
+
+    if mode == "subdomain" { subdomain_enum(target, args[2]) }
+    if mode == "dns"       { dns_enum(target) }
+    if mode == "whois"     { whois_lookup(target) }
+    if mode == "email"     { email_harvest(target) }
+    if mode == "services"  { port_service_map(target) }
+}
