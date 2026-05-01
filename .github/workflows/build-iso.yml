@@ -19,13 +19,13 @@ jobs:
 
       - name: Install build dependencies
         run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y \
+          apt-get update -qq
+          apt-get install -y \
             live-build debootstrap xorriso \
             isolinux syslinux-common squashfs-tools \
             mtools dosfstools grub-pc-bin grub-efi-amd64-bin \
             curl wget python3-pip git
-          pip3 install koppa-lang 2>/dev/null || true
+          pip3 install koppa-lang --break-system-packages 2>/dev/null || true
 
       - name: Prepare KOPPA binaries
         run: |
@@ -63,7 +63,7 @@ jobs:
           cp -r config/hooks/.         config/hooks/          2>/dev/null || true
 
       - name: Build ISO
-        run: sudo lb build 2>&1 | tee build.log | tail -80
+        run: lb build 2>&1 | tee build.log | tail -80
 
       - name: Rename ISO
         run: |
