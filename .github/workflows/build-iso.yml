@@ -15,19 +15,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Remove Ubuntu security mirror from host
-        run: |
-          # live-build reads host sources and injects security.ubuntu.com into chroot
-          # Remove it from the host first so live-build has nothing to inherit
-          sudo rm -f /etc/apt/sources.list.d/ubuntu.sources \
-                     /etc/apt/sources.list.d/ubuntu-security.list 2>/dev/null || true
-          sudo sed -i '/security\.ubuntu\.com/d' /etc/apt/sources.list 2>/dev/null || true
-          echo "deb http://deb.debian.org/debian bookworm main" | \
-            sudo tee /etc/apt/sources.list.d/debian.list
-          sudo apt-get update -qq
-
       - name: Install build dependencies
         run: |
+          sudo apt-get update -qq
           sudo apt-get install -y \
             live-build debootstrap xorriso \
             isolinux syslinux-common squashfs-tools \
@@ -61,11 +51,22 @@ jobs:
             --mirror-chroot   "http://deb.debian.org/debian" \
             --mirror-binary   "http://deb.debian.org/debian" \
             --binary-images iso-hybrid \
-            --debian-installer none \
-            --security false
+            --debian-installer none
 
-          # Inject correct Debian security source manually
-          # (live-build on Ubuntu always falls back to security.ubuntu.com when --security=true)
+          # Force LB_SECURITY=false so live-build won't auto-add a security source
+          sed -i 's|^LB_SECURITY=.*|LB_SECURITY="false"|' config/common
+          grep LB_SECURITY config/common
+
+          # Patch the live-build script directly to block ubuntu security mirror
+          LBSCRIPT=$(find /usr/lib/live /usr/share/live-build -name "lb_chroot_archives" 2>/dev/null | head -1)
+          if [ -n "$LBSCRIPT" ]; then
+            sudo sed -i \
+              's|security\.ubuntu\.com/ubuntu|security.debian.org/debian-security|g' \
+              "$LBSCRIPT"
+            echo "Patched: $LBSCRIPT"
+          fi
+
+          # Add Debian security source via config/archives
           mkdir -p config/archives
           echo "deb http://security.debian.org/debian-security bookworm-security main contrib non-free non-free-firmware" \
             > config/archives/debian-security.list.chroot
