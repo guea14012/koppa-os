@@ -28,12 +28,12 @@
     }
     .hero-bg{
       position:absolute; inset:0; z-index:0;
-      background:url('wallpaper.png') center/cover no-repeat;
-      filter:brightness(.55);
+      background:#0a0000;
     }
     .hero-bg::after{
       content:''; position:absolute; inset:0;
-      background:linear-gradient(to bottom,transparent 40%,#0a0000 100%);
+      background:radial-gradient(ellipse at 50% 30%,
+        rgba(140,0,0,0.25) 0%, transparent 70%);
     }
     .hero-content{position:relative;z-index:1}
     .hero-logo{
