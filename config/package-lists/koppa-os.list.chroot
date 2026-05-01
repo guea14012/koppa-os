@@ -1,38 +1,100 @@
-# KOPPA-OS — Package list
-# Base Kali tools
-kali-linux-default
-kali-tools-top10
+# KOPPA-OS — Package List (Debian Bookworm base)
+# Independent from Kali Linux
 
-# Python
-python3
-python3-pip
-python3-requests
-python3-cryptography
-python3-joblib
-python3-numpy
-python3-pandas
-
-# Network tools
-nmap
-netcat-openbsd
-tcpdump
-wireshark
-net-tools
-dnsutils
-iputils-ping
+# ── Core system ──────────────────────────────────────────────────────────────
+bash
+coreutils
+systemd
+sudo
 curl
 wget
-
-# Dev tools
 git
 vim
 tmux
 htop
-docker.io
+tree
+zip
+unzip
+p7zip-full
+file
 
-# Desktop / Display manager
+# ── Python ────────────────────────────────────────────────────────────────────
+python3
+python3-pip
+python3-requests
+python3-cryptography
+python3-pycryptodome
+python3-joblib
+python3-numpy
+python3-pandas
+python3-scapy
+
+# ── Network tools ─────────────────────────────────────────────────────────────
+nmap
+netcat-openbsd
+tcpdump
+wireshark
+tshark
+net-tools
+dnsutils
+iputils-ping
+traceroute
+whois
+iproute2
+arp-scan
+masscan
+hping3
+socat
+
+# ── Web tools ─────────────────────────────────────────────────────────────────
+nikto
+sqlmap
+dirb
+gobuster
+ffuf
+wfuzz
+curl
+
+# ── Password & crypto ─────────────────────────────────────────────────────────
+john
+hashcat
+hydra
+medusa
+crunch
+wordlists
+
+# ── Exploit framework ─────────────────────────────────────────────────────────
+metasploit-framework
+exploitdb
+
+# ── Wireless ──────────────────────────────────────────────────────────────────
+aircrack-ng
+reaver
+
+# ── Forensics ─────────────────────────────────────────────────────────────────
+binwalk
+foremost
+volatility3
+strings
+hexedit
+
+# ── Reverse engineering ───────────────────────────────────────────────────────
+gdb
+radare2
+ltrace
+strace
+
+# ── Desktop ───────────────────────────────────────────────────────────────────
 xfce4
 xfce4-terminal
+xfce4-taskmanager
 lightdm
 lightdm-webkit2-greeter
+firefox-esr
 
+# ── Misc ──────────────────────────────────────────────────────────────────────
+docker.io
+openssh-client
+openvpn
+tor
+proxychains4

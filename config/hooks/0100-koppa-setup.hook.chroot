@@ -2,19 +2,28 @@
 # KOPPA-OS: Post-install hook — runs inside chroot during ISO build
 set -e
 
-echo "[KOPPA-OS] Setting up KOPPA..."
+echo "[KOPPA-OS] Setting up KOPPA Language..."
 
 # Install KOPPA from PyPI
 pip3 install --no-cache-dir koppa-lang pygls lsprotocol 2>/dev/null || true
 
-# Pre-install security packages for all users
-KOPPA_PKG_DIR="/usr/share/koppa/packages"
-mkdir -p "$KOPPA_PKG_DIR"
+# Install Metasploit if not in package list (Debian repo may not have it)
+if ! command -v msfconsole &>/dev/null; then
+  curl -fsSL https://apt.metasploit.com/metasploit-framework.gpg | \
+    gpg --dearmor -o /usr/share/keyrings/metasploit.gpg 2>/dev/null || true
+  echo "deb [signed-by=/usr/share/keyrings/metasploit.gpg] \
+    https://apt.metasploit.com/ buster main" \
+    > /etc/apt/sources.list.d/metasploit.list 2>/dev/null || true
+  apt-get update -qq 2>/dev/null && \
+    apt-get install -y metasploit-framework 2>/dev/null || true
+fi
+
+# Pre-install KOPPA security packages
 python3 -m koppa pkg install koppa-portscan  2>/dev/null || true
 python3 -m koppa pkg install koppa-jwt-attack 2>/dev/null || true
-python3 -m koppa pkg install koppa-subdomain 2>/dev/null || true
-python3 -m koppa pkg install koppa-hashcrack 2>/dev/null || true
-python3 -m koppa pkg install koppa-webfuzz   2>/dev/null || true
+python3 -m koppa pkg install koppa-subdomain  2>/dev/null || true
+python3 -m koppa pkg install koppa-hashcrack  2>/dev/null || true
+python3 -m koppa pkg install koppa-webfuzz    2>/dev/null || true
 
 # MOTD
 cat > /etc/motd << 'MOTD'
@@ -26,15 +35,15 @@ cat > /etc/motd << 'MOTD'
   ██║  ██╗╚██████╔╝██║     ██║     ██║  ██║       ╚██████╔╝███████║
   ╚═╝  ╚═╝ ╚═════╝ ╚═╝     ╚═╝     ╚═╝  ╚═╝        ╚═════╝ ╚══════╝
 
-  KOPPA-OS — Advanced Cybersecurity Platform v1.0
-  Powered by KOPPA v3.0.1 + Kali Linux
+  KOPPA-OS v1.0 — Independent Redteam Platform
+  Built on Debian 12 · Powered by KOPPA v3.0.1
 
   Commands:
     koppa repl                    Interactive KOPPA shell
     koppa run <script.kop>        Run a KOPPA script
     koppa pkg install <name>      Install KOPPA package
     koppa-c2 [host] [port]        Start C2 server
-    koppa pkg audit               Audit installed packages
+    koppa pkg audit               Security audit
 
   Pre-installed: koppa-portscan, koppa-jwt-attack,
                  koppa-subdomain, koppa-hashcrack, koppa-webfuzz
@@ -43,4 +52,4 @@ cat > /etc/motd << 'MOTD'
 
 MOTD
 
-echo "[KOPPA-OS] Setup complete"
+echo "[KOPPA-OS] Setup complete — Debian base, KOPPA ready"
