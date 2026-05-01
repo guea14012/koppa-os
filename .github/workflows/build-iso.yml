@@ -11,6 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: debian:bookworm
+      options: --privileged
     timeout-minutes: 180
 
     steps:
