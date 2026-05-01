@@ -30,41 +30,24 @@ jobs:
           mkdir -p config/includes.chroot/usr/share/koppa
           mkdir -p config/includes.chroot/usr/bin
 
-          # Bundle KOPPA stdlib into chroot
           pip3 install koppa-lang \
             --target config/includes.chroot/usr/share/koppa/lib \
             2>/dev/null || true
 
-          # /usr/bin/koppa
-          cat > config/includes.chroot/usr/bin/koppa << 'KOPPABIN'
-#!/bin/bash
-if command -v python3 &>/dev/null; then
-  if python3 -c "import koppa" 2>/dev/null; then
-    exec python3 -m koppa "$@"
-  fi
-  if [ -f /usr/share/koppa/src/koppa.py ]; then
-    exec PYTHONPATH=/usr/share/koppa/lib \
-         python3 /usr/share/koppa/src/koppa.py "$@"
-  fi
-fi
-echo "KOPPA not found. Run: pip3 install koppa-lang"
-exit 1
-KOPPABIN
+          cp scripts/koppa-bin.sh config/includes.chroot/usr/bin/koppa
           chmod +x config/includes.chroot/usr/bin/koppa
-
-          # apollo alias (backwards compat)
           cp config/includes.chroot/usr/bin/koppa \
              config/includes.chroot/usr/bin/apollo
 
-      - name: Configure live-build (Debian base)
+      - name: Configure live-build
         run: |
           lb config \
             --distribution bookworm \
             --architecture amd64 \
             --archive-areas "main contrib non-free non-free-firmware" \
             --mirror-bootstrap "http://deb.debian.org/debian" \
-            --mirror-chroot  "http://deb.debian.org/debian" \
-            --mirror-binary  "http://deb.debian.org/debian" \
+            --mirror-chroot   "http://deb.debian.org/debian" \
+            --mirror-binary   "http://deb.debian.org/debian" \
             --security true \
             --updates true \
             --binary-images iso-hybrid \
@@ -74,29 +57,23 @@ KOPPABIN
 
       - name: Copy config overlay
         run: |
-          # Merge our config/ into lb working directory
           cp -r config/package-lists/. config/package-lists/ 2>/dev/null || true
-          cp -r config/hooks/.          config/hooks/         2>/dev/null || true
-          cp -r config/includes.chroot/. chroot/              2>/dev/null || true
+          cp -r config/hooks/.         config/hooks/          2>/dev/null || true
 
       - name: Build ISO
-        run: |
-          sudo lb build 2>&1 | tee build.log | tail -80
+        run: sudo lb build 2>&1 | tee build.log | tail -80
 
-      - name: Find and rename ISO
+      - name: Rename ISO
         run: |
           ISO=$(ls *.iso 2>/dev/null | head -1)
           if [ -n "$ISO" ]; then
-            mv "$ISO" koppa-os-$(date +%Y%m%d)-amd64.iso
-            echo "ISO: koppa-os-$(date +%Y%m%d)-amd64.iso"
+            mv "$ISO" "koppa-os-$(date +%Y%m%d)-amd64.iso"
             ls -lh *.iso
           else
-            echo "No ISO produced — check build.log"
-            tail -100 build.log
-            exit 1
+            echo "No ISO — build failed"; tail -100 build.log; exit 1
           fi
 
-      - name: Upload ISO artifact
+      - name: Upload ISO
         uses: actions/upload-artifact@v4
         with:
           name: koppa-os-iso
@@ -111,32 +88,23 @@ KOPPABIN
           path: build.log
         if: failure()
 
-      - name: Create GitHub Release (on tag)
+      - name: GitHub Release (on tag)
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
           files: "*.iso"
           body: |
             ## KOPPA-OS ${{ github.ref_name }}
-
-            **Base:** Debian 12 Bookworm (independent — not Kali)
-            **Arch:** amd64 · **Type:** Live ISO (USB/VM)
+            **Base:** Debian 12 Bookworm · **Arch:** amd64
 
             ### Pre-installed
             - KOPPA v3.0.1 — Security-native DSL
-            - koppa-portscan, koppa-jwt-attack, koppa-subdomain
-            - koppa-hashcrack, koppa-webfuzz
-            - nmap, Metasploit, Wireshark, Burp Suite
-            - AI-powered nmap scanner
+            - nmap, Metasploit, Wireshark, Hydra, SQLmap, Hashcat
+            - koppa-portscan, koppa-jwt-attack, koppa-webfuzz
 
             ### Quick Start
             ```bash
-            koppa repl                         # KOPPA interactive shell
-            koppa run script.kop               # Run script
-            koppa pkg install koppa-portscan   # Install package
-            koppa-c2                           # Start C2 server
+            koppa repl
+            koppa pkg install koppa-portscan
+            koppa-c2
             ```
-
-            ### Links
-            - [KOPPA Language](https://guea14012.github.io/koppa-lang)
-            - [Package Registry](https://guea14012.github.io/koppa-registry-/)
