@@ -87,6 +87,21 @@ gem install evil-winrm 2>/dev/null || true
 # ── sublist3r ─────────────────────────────────────────────────────────────────
 pip3 install sublist3r --break-system-packages 2>/dev/null || true
 
+# ── theHarvester ──────────────────────────────────────────────────────────────
+pip3 install theHarvester --break-system-packages 2>/dev/null || true
+
+# ── enum4linux-ng ─────────────────────────────────────────────────────────────
+pip3 install enum4linux-ng --break-system-packages 2>/dev/null || true
+
+# ── radare2 ───────────────────────────────────────────────────────────────────
+R2=$(curl -fsSL https://api.github.com/repos/radareorg/radare2/releases/latest \
+  | python3 -c "import sys,json; r=json.load(sys.stdin)['assets']; \
+    print(next(a['browser_download_url'] for a in r if 'linux-x86_64' in a['name'] and a['name'].endswith('.tar.xz')))" \
+  2>/dev/null || true)
+if [ -n "$R2" ]; then
+  curl -fsSL "$R2" | tar -xJ --strip-components=1 -C /usr/local 2>/dev/null || true
+fi
+
 # ── KOPPA packages pre-install ────────────────────────────────────────────────
 echo "[KOPPA-OS] Installing KOPPA packages..."
 python3 -m koppa pkg install koppa-portscan   2>/dev/null || true

@@ -53,14 +53,12 @@ crunch
 
 # ── SMB / AD (24-27) ─────────────────────────────────────────────────────────
 smbclient
-enum4linux
 python3-impacket
 samdump2
 
 # ── DNS / OSINT (28-32) ───────────────────────────────────────────────────────
 dnsutils
 dnsrecon
-python3-theHarvester
 whois
 netcat-openbsd
 
@@ -78,7 +76,6 @@ dcfldd
 
 # ── Reverse engineering (41-44) ───────────────────────────────────────────────
 gdb
-radare2
 ltrace
 strace
 
