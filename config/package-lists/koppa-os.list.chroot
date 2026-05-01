@@ -1,7 +1,6 @@
-# KOPPA-OS — Package List (Debian Bookworm base)
-# Independent from Kali Linux
+# KOPPA-OS — Package List (Debian Bookworm)
 
-# ── Core system ──────────────────────────────────────────────────────────────
+# ── Core system ───────────────────────────────────────────────────────────────
 bash
 coreutils
 systemd
@@ -17,6 +16,7 @@ zip
 unzip
 p7zip-full
 file
+binutils
 
 # ── Python ────────────────────────────────────────────────────────────────────
 python3
@@ -24,9 +24,7 @@ python3-pip
 python3-requests
 python3-cryptography
 python3-pycryptodome
-python3-joblib
 python3-numpy
-python3-pandas
 python3-scapy
 
 # ── Network tools ─────────────────────────────────────────────────────────────
@@ -50,10 +48,7 @@ socat
 nikto
 sqlmap
 dirb
-gobuster
-ffuf
 wfuzz
-curl
 
 # ── Password & crypto ─────────────────────────────────────────────────────────
 john
@@ -61,21 +56,13 @@ hashcat
 hydra
 medusa
 crunch
-wordlists
-
-# ── Exploit framework ─────────────────────────────────────────────────────────
-metasploit-framework
-exploitdb
 
 # ── Wireless ──────────────────────────────────────────────────────────────────
 aircrack-ng
-reaver
 
 # ── Forensics ─────────────────────────────────────────────────────────────────
 binwalk
 foremost
-volatility3
-strings
 hexedit
 
 # ── Reverse engineering ───────────────────────────────────────────────────────
@@ -89,7 +76,7 @@ xfce4
 xfce4-terminal
 xfce4-taskmanager
 lightdm
-lightdm-webkit2-greeter
+lightdm-gtk-greeter
 firefox-esr
 
 # ── Misc ──────────────────────────────────────────────────────────────────────
