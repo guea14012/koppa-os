@@ -15,9 +15,19 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Remove Ubuntu security mirror from host
+        run: |
+          # live-build reads host sources and injects security.ubuntu.com into chroot
+          # Remove it from the host first so live-build has nothing to inherit
+          sudo rm -f /etc/apt/sources.list.d/ubuntu.sources \
+                     /etc/apt/sources.list.d/ubuntu-security.list 2>/dev/null || true
+          sudo sed -i '/security\.ubuntu\.com/d' /etc/apt/sources.list 2>/dev/null || true
+          echo "deb http://deb.debian.org/debian bookworm main" | \
+            sudo tee /etc/apt/sources.list.d/debian.list
+          sudo apt-get update -qq
+
       - name: Install build dependencies
         run: |
-          sudo apt-get update -qq
           sudo apt-get install -y \
             live-build debootstrap xorriso \
             isolinux syslinux-common squashfs-tools \
