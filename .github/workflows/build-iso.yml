@@ -55,6 +55,13 @@ jobs:
             --binary-images iso-hybrid \
             --debian-installer none
 
+          # live-build on Ubuntu ignores --mirror-*-security and falls back to
+          # the host's security.ubuntu.com — patch config/common directly
+          sed -i \
+            's|security\.ubuntu\.com/ubuntu|security.debian.org/debian-security|g' \
+            config/common
+          grep -i "security" config/common
+
       - name: Copy config overlay
         run: |
           cp -r config/package-lists/. config/package-lists/ 2>/dev/null || true
