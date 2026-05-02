@@ -1,0 +1,118 @@
+#!/usr/bin/env python3
+"""KOPPA Package Manager — reads from koppa-packages/index.json on GitHub"""
+import sys, os, json, urllib.request, shutil, hashlib
+
+REGISTRY   = "https://raw.githubusercontent.com/guea14012/koppa-os/main/koppa-packages"
+INDEX_URL  = REGISTRY + "/index.json"
+PKG_DIR    = "/usr/share/koppa/packages"
+CACHE_DIR  = "/var/cache/koppa-pkg"
+
+RED   = "\033[91m"; GREEN = "\033[92m"; CYAN  = "\033[96m"
+MUTED = "\033[2m";  BOLD  = "\033[1m";  RESET = "\033[0m"
+
+def ok(s):  print(f"{GREEN}[+]{RESET} {s}")
+def err(s): print(f"{RED}[-]{RESET} {s}"); sys.exit(1)
+def info(s):print(f"{CYAN}[*]{RESET} {s}")
+
+def fetch_index():
+    try:
+        with urllib.request.urlopen(INDEX_URL, timeout=10) as r:
+            return json.loads(r.read())
+    except Exception as e:
+        err(f"Cannot reach KOPPA registry: {e}")
+
+def cmd_list(args):
+    idx = fetch_index()
+    print(f"\n{BOLD}KOPPA Package Registry{RESET}  ({len(idx['packages'])} packages)\n")
+    for p in idx["packages"]:
+        installed = os.path.exists(f"{PKG_DIR}/{p['name']}.kpkg")
+        status = f"{GREEN}installed{RESET}" if installed else f"{MUTED}available{RESET}"
+        tags   = "  " + " ".join(f"\033[2m[{t}]\033[0m" for t in p["tags"])
+        print(f"  {BOLD}{p['name']:<28}{RESET} v{p['version']}  {status}")
+        print(f"  {MUTED}{p['description']}{RESET}{tags}\n")
+
+def cmd_install(args):
+    if not args: err("Usage: koppa pkg install <package>")
+    name = args[0]
+    idx  = fetch_index()
+    pkg  = next((p for p in idx["packages"] if p["name"] == name), None)
+    if not pkg: err(f"Package '{name}' not found. Run: koppa pkg list")
+
+    info(f"Installing {name} v{pkg['version']}...")
+    url = f"{REGISTRY}/{pkg['file']}"
+    os.makedirs(PKG_DIR,   exist_ok=True)
+    os.makedirs(CACHE_DIR, exist_ok=True)
+
+    dest = f"{PKG_DIR}/{name}.kpkg"
+    try:
+        with urllib.request.urlopen(url, timeout=15) as r:
+            data = r.read()
+        with open(dest, "wb") as f:
+            f.write(data)
+        ok(f"Installed: {name}  ({len(data)} bytes)")
+        ok(f"Location:  {dest}")
+        print(f"\n  Run with: {CYAN}koppa run {name}{RESET}")
+    except Exception as e:
+        err(f"Download failed: {e}")
+
+def cmd_remove(args):
+    if not args: err("Usage: koppa pkg remove <package>")
+    name = args[0]
+    dest = f"{PKG_DIR}/{name}.kpkg"
+    if not os.path.exists(dest): err(f"Package '{name}' is not installed")
+    os.remove(dest)
+    ok(f"Removed: {name}")
+
+def cmd_info(args):
+    if not args: err("Usage: koppa pkg info <package>")
+    name = args[0]
+    idx  = fetch_index()
+    pkg  = next((p for p in idx["packages"] if p["name"] == name), None)
+    if not pkg: err(f"Package '{name}' not found")
+    print(f"\n{BOLD}{pkg['name']}{RESET}  v{pkg['version']}")
+    print(f"  {pkg['description']}")
+    print(f"  Tags: {', '.join(pkg['tags'])}")
+    inst = os.path.exists(f"{PKG_DIR}/{pkg['name']}.kpkg")
+    print(f"  Status: {'installed' if inst else 'not installed'}\n")
+
+def cmd_update(args):
+    info("Updating all installed packages...")
+    idx = fetch_index()
+    updated = 0
+    for pkg in idx["packages"]:
+        dest = f"{PKG_DIR}/{pkg['name']}.kpkg"
+        if os.path.exists(dest):
+            cmd_install([pkg["name"]])
+            updated += 1
+    ok(f"Updated {updated} package(s)")
+
+COMMANDS = {
+    "list":    cmd_list,
+    "install": cmd_install,
+    "remove":  cmd_remove,
+    "rm":      cmd_remove,
+    "info":    cmd_info,
+    "update":  cmd_update,
+}
+
+def main():
+    args = sys.argv[1:]
+    if not args or args[0] in ("-h", "--help", "help"):
+        print(f"""
+{BOLD}koppa-pkg{RESET} — KOPPA Package Manager
+
+  {CYAN}koppa pkg list{RESET}              List all available packages
+  {CYAN}koppa pkg install <name>{RESET}    Install a package
+  {CYAN}koppa pkg remove  <name>{RESET}    Remove a package
+  {CYAN}koppa pkg info    <name>{RESET}    Show package details
+  {CYAN}koppa pkg update{RESET}            Update all installed packages
+
+  Registry: {MUTED}{REGISTRY}{RESET}
+""")
+        return
+    cmd = args[0]
+    if cmd not in COMMANDS: err(f"Unknown command '{cmd}'. Run: koppa pkg help")
+    COMMANDS[cmd](args[1:])
+
+if __name__ == "__main__":
+    main()

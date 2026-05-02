@@ -146,6 +146,34 @@
     .sha-label{font-size:10px; letter-spacing:3px; color:var(--red);
       text-transform:uppercase; margin-bottom:4px;}
 
+    /* Packages */
+    .pkg-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:16px}
+    .pkg{
+      background:var(--card); border:1px solid var(--border);
+      border-radius:4px; padding:20px;
+      transition:border-color .2s;
+    }
+    .pkg:hover{border-color:rgba(200,30,30,0.5)}
+    .pkg-name{font-size:13px; font-weight:700; color:#fff; letter-spacing:1px; margin-bottom:6px}
+    .pkg-name span{color:var(--red)}
+    .pkg-desc{color:var(--muted); font-size:12px; line-height:1.6; margin-bottom:10px}
+    .pkg-tags{display:flex; gap:6px; flex-wrap:wrap}
+    .pkg-tag{font-size:10px; letter-spacing:1px; padding:2px 7px;
+      border:1px solid var(--border); border-radius:2px; color:var(--muted)}
+    .pkg-cmd{
+      margin-top:10px; font-family:'Courier New',monospace; font-size:11px;
+      color:rgba(150,200,150,0.7); background:rgba(0,0,0,0.4);
+      border:1px solid var(--border); border-radius:2px; padding:6px 10px;
+    }
+
+    /* Legal */
+    .legal-box{
+      background:rgba(140,0,0,0.08); border:1px solid rgba(180,30,30,0.4);
+      border-radius:4px; padding:32px; text-align:center;
+    }
+    .legal-box h3{font-size:16px; font-weight:700; letter-spacing:2px; margin-bottom:12px}
+    .legal-box p{color:var(--muted); font-size:13px; line-height:1.8; max-width:640px; margin:0 auto}
+
     /* Install / Boot guide */
     .steps{display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:20px; margin-top:40px}
     .step{
@@ -196,6 +224,7 @@
   <div class="nav-links">
     <a href="#features">Features</a>
     <a href="#tools">Tools</a>
+    <a href="#packages">Packages</a>
     <a href="#install">Install</a>
     <a href="#download">Download</a>
     <a href="https://guea14012.github.io/koppa-lang" target="_blank">KOPPA Lang</a>
@@ -293,6 +322,84 @@
 
 <div class="red-line"></div>
 
+<!-- Packages -->
+<section id="packages">
+  <p class="section-tag">KOPPA Registry</p>
+  <h2>KOPPA <span>Packages</span></h2>
+  <p class="section-desc">Security modules written in KOPPA language. Install with one command.</p>
+  <div class="pkg-grid">
+    <div class="pkg">
+      <div class="pkg-name"><span>koppa</span>-portscan</div>
+      <div class="pkg-desc">Advanced TCP/UDP port scanner with service detection and banner grabbing</div>
+      <div class="pkg-tags"><span class="pkg-tag">network</span><span class="pkg-tag">recon</span><span class="pkg-tag">scanning</span></div>
+      <div class="pkg-cmd">koppa pkg install koppa-portscan</div>
+    </div>
+    <div class="pkg">
+      <div class="pkg-name"><span>koppa</span>-webfuzz</div>
+      <div class="pkg-desc">Web fuzzer — directory/file brute-force, parameter injection, vhost discovery</div>
+      <div class="pkg-tags"><span class="pkg-tag">web</span><span class="pkg-tag">fuzzing</span><span class="pkg-tag">recon</span></div>
+      <div class="pkg-cmd">koppa pkg install koppa-webfuzz</div>
+    </div>
+    <div class="pkg">
+      <div class="pkg-name"><span>koppa</span>-jwt-attack</div>
+      <div class="pkg-desc">JWT toolkit — decode, forge, alg-none bypass, brute-force secret key</div>
+      <div class="pkg-tags"><span class="pkg-tag">web</span><span class="pkg-tag">auth</span><span class="pkg-tag">jwt</span></div>
+      <div class="pkg-cmd">koppa pkg install koppa-jwt-attack</div>
+    </div>
+    <div class="pkg">
+      <div class="pkg-name"><span>koppa</span>-hashcrack</div>
+      <div class="pkg-desc">Hash identification and cracking — MD5/SHA/bcrypt/NTLM with wordlist & rules</div>
+      <div class="pkg-tags"><span class="pkg-tag">crypto</span><span class="pkg-tag">password</span><span class="pkg-tag">cracking</span></div>
+      <div class="pkg-cmd">koppa pkg install koppa-hashcrack</div>
+    </div>
+    <div class="pkg">
+      <div class="pkg-name"><span>koppa</span>-recon</div>
+      <div class="pkg-desc">Passive & active recon — subdomain enum, DNS, WHOIS, email harvesting</div>
+      <div class="pkg-tags"><span class="pkg-tag">recon</span><span class="pkg-tag">osint</span><span class="pkg-tag">dns</span></div>
+      <div class="pkg-cmd">koppa pkg install koppa-recon</div>
+    </div>
+    <div class="pkg">
+      <div class="pkg-name"><span>koppa</span>-exploit</div>
+      <div class="pkg-desc">Exploit helper — CVE lookup, payload gen, reverse shell builder, msfvenom wrapper</div>
+      <div class="pkg-tags"><span class="pkg-tag">exploit</span><span class="pkg-tag">payload</span><span class="pkg-tag">cve</span></div>
+      <div class="pkg-cmd">koppa pkg install koppa-exploit</div>
+    </div>
+    <div class="pkg">
+      <div class="pkg-name"><span>koppa</span>-evasion</div>
+      <div class="pkg-desc">AV/EDR evasion — AMSI bypass, ETW patch, anti-debug, anti-VM, obfuscation</div>
+      <div class="pkg-tags"><span class="pkg-tag">evasion</span><span class="pkg-tag">amsi</span><span class="pkg-tag">av</span></div>
+      <div class="pkg-cmd">koppa pkg install koppa-evasion</div>
+    </div>
+    <div class="pkg">
+      <div class="pkg-name"><span>koppa</span>-bruteforce</div>
+      <div class="pkg-desc">Multi-protocol brute forcer — SSH, FTP, SMB, RDP, MySQL, Redis, HTTP form</div>
+      <div class="pkg-tags"><span class="pkg-tag">bruteforce</span><span class="pkg-tag">credential</span><span class="pkg-tag">auth</span></div>
+      <div class="pkg-cmd">koppa pkg install koppa-bruteforce</div>
+    </div>
+    <div class="pkg">
+      <div class="pkg-name"><span>koppa</span>-c2-client</div>
+      <div class="pkg-desc">C2 agent — connect to KOPPA-C2 server, execute tasks, exfil data over HTTP/DNS</div>
+      <div class="pkg-tags"><span class="pkg-tag">c2</span><span class="pkg-tag">agent</span><span class="pkg-tag">covert</span></div>
+      <div class="pkg-cmd">koppa pkg install koppa-c2-client</div>
+    </div>
+  </div>
+</section>
+
+<div class="red-line"></div>
+
+<!-- Legal -->
+<section id="legal">
+  <div class="legal-box">
+    <h3>&#9888; AUTHORIZED USE ONLY</h3>
+    <p>
+      KOPPA-OS is designed exclusively for <strong style="color:#fff">authorized security testing, penetration testing engagements, CTF competitions, and security research</strong> on systems you own or have explicit written permission to test.<br/><br/>
+      Unauthorized use against systems without permission is illegal and unethical. The developers of KOPPA-OS are not responsible for any misuse. By downloading and using KOPPA-OS you agree to use it only for lawful purposes.
+    </p>
+  </div>
+</section>
+
+<div class="red-line"></div>
+
 <!-- Install Guide -->
 <section id="install">
   <p class="section-tag">Getting Started</p>
@@ -356,7 +463,7 @@
 
 <footer>
   <div>KOPPA-OS &nbsp;·&nbsp; <a href="https://guea14012.github.io/koppa-lang">KOPPA Language</a> &nbsp;·&nbsp; <a href="https://guea14012.github.io/koppa-registry-/">Package Registry</a> &nbsp;·&nbsp; <a href="https://github.com/guea14012/koppa-os">GitHub</a></div>
-  <div style="margin-top:6px">For authorized security testing only &nbsp;·&nbsp; MIT License</div>
+  <div style="margin-top:6px">For authorized security testing only &nbsp;·&nbsp; MIT License &nbsp;·&nbsp; <a href="#legal">Legal</a></div>
 </footer>
 
 <script>

@@ -1,6 +1,6 @@
 #!/bin/bash
 # KOPPA Language runner
-# Tries PyPI install first, then bundled version
+if [ "$1" = "pkg" ]; then shift; exec koppa-pkg "$@"; fi
 if python3 -c "import koppa" 2>/dev/null; then
     exec python3 -m koppa "$@"
 elif [ -f /usr/share/koppa/src/koppa.py ]; then
