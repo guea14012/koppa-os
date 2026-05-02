@@ -137,6 +137,35 @@
     .download-info h3{font-size:20px; font-weight:700; margin-bottom:8px}
     .download-info p{color:var(--muted); font-size:13px}
     .download-meta{margin-top:12px; font-size:12px; color:rgba(180,80,80,0.6); letter-spacing:1px}
+    .sha-box{
+      margin-top:16px; background:rgba(0,0,0,0.4);
+      border:1px solid var(--border); border-radius:3px;
+      padding:10px 14px; font-family:'Courier New',monospace;
+      font-size:11px; color:rgba(180,200,180,0.7); word-break:break-all;
+    }
+    .sha-label{font-size:10px; letter-spacing:3px; color:var(--red);
+      text-transform:uppercase; margin-bottom:4px;}
+
+    /* Install / Boot guide */
+    .steps{display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:20px; margin-top:40px}
+    .step{
+      background:var(--card); border:1px solid var(--border);
+      border-radius:4px; padding:24px; position:relative;
+    }
+    .step-num{
+      position:absolute; top:-14px; left:20px;
+      background:var(--red); color:#fff;
+      font-size:11px; font-weight:900; letter-spacing:2px;
+      padding:2px 10px; border-radius:2px;
+    }
+    .step h3{font-size:14px; font-weight:700; margin:8px 0 10px}
+    .step p,.step code{color:var(--muted); font-size:12px; line-height:1.7}
+    .step code{
+      display:block; background:rgba(0,0,0,0.5);
+      border:1px solid var(--border); border-radius:2px;
+      padding:8px 12px; margin-top:8px;
+      font-family:'Courier New',monospace; color:#aaddaa;
+    }
 
     /* Divider */
     .red-line{ display:none; }
@@ -167,6 +196,7 @@
   <div class="nav-links">
     <a href="#features">Features</a>
     <a href="#tools">Tools</a>
+    <a href="#install">Install</a>
     <a href="#download">Download</a>
     <a href="https://guea14012.github.io/koppa-lang" target="_blank">KOPPA Lang</a>
   </div>
@@ -180,7 +210,7 @@
     <h1>KOPPA<span>-OS</span></h1>
     <p class="hero-sub">Redteam Operating System</p>
     <p class="hero-tagline">
-      A Kali-based cybersecurity platform powered by the KOPPA language.
+      A Debian-based cybersecurity platform powered by the KOPPA language.
       Built for offense. Designed for professionals.
     </p>
     <div class="hero-btns">
@@ -213,8 +243,8 @@
     </div>
     <div class="feat">
       <div class="feat-icon">🔴</div>
-      <h3>Full Kali Toolset</h3>
-      <p>All Kali Linux top-10 tools pre-installed alongside KOPPA. nmap, Metasploit, Burp, Wireshark and more.</p>
+      <h3>Top 50 Security Tools</h3>
+      <p>nmap, Metasploit, Wireshark, sqlmap, hydra, hashcat, gobuster, nuclei, ffuf, amass, searchsploit and more — pre-installed.</p>
     </div>
     <div class="feat">
       <div class="feat-icon">📦</div>
@@ -263,21 +293,62 @@
 
 <div class="red-line"></div>
 
+<!-- Install Guide -->
+<section id="install">
+  <p class="section-tag">Getting Started</p>
+  <h2>Boot <span>Guide</span></h2>
+  <p class="section-desc">Three ways to run KOPPA-OS — USB live boot, VirtualBox, or VMware.</p>
+  <div class="steps">
+    <div class="step">
+      <span class="step-num">USB BOOT</span>
+      <h3>Flash to USB Drive</h3>
+      <p>Requires a USB drive 4GB+. Use Balena Etcher (Windows/Mac/Linux) or dd on Linux.</p>
+      <code>dd if=koppa-os-*.iso of=/dev/sdX bs=4M status=progress</code>
+      <p style="margin-top:8px">Boot from USB → select "Live" → login: <strong style="color:#fff">root / koppa</strong></p>
+    </div>
+    <div class="step">
+      <span class="step-num">VIRTUALBOX</span>
+      <h3>Run in VirtualBox</h3>
+      <p>New VM → Linux/Debian 64-bit → 4GB RAM → 2 CPU → attach ISO as optical disk → Boot.</p>
+      <code>Recommended: 4096 MB RAM · 2 vCPU · NAT + Host-only adapter</code>
+    </div>
+    <div class="step">
+      <span class="step-num">VMWARE</span>
+      <h3>Run in VMware</h3>
+      <p>New VM → Linux → Debian 12 → attach ISO → Power on. Enable 3D acceleration for best performance.</p>
+      <code>Recommended: 4096 MB RAM · 2 vCPU · Bridged network</code>
+    </div>
+    <div class="step">
+      <span class="step-num">VERIFY</span>
+      <h3>Verify ISO Integrity</h3>
+      <p>Always verify the SHA256 checksum before booting to ensure the ISO was not tampered with.</p>
+      <code>sha256sum koppa-os-*.iso</code>
+      <p style="margin-top:8px">Compare with the checksum shown in the Download section below.</p>
+    </div>
+  </div>
+</section>
+
+<div class="red-line"></div>
+
 <!-- Download -->
 <section id="download">
   <p class="section-tag">Get KOPPA-OS</p>
   <h2>Download <span>ISO</span></h2>
   <div class="download-card">
     <div class="download-info">
-      <h3>KOPPA-OS v1.0</h3>
-      <p>Kali-based live ISO — boot from USB or VM. Includes KOPPA v3.0.1, full Kali toolset, KOPPA-C2.</p>
-      <p class="download-meta">ARCHITECTURE: amd64 &nbsp;·&nbsp; BASED ON: Kali Linux Rolling &nbsp;·&nbsp; GREETER: KOPPA-OS Custom</p>
+      <h3 id="dl-version">KOPPA-OS v1.0.1</h3>
+      <p>Debian 12 Bookworm live ISO — boot from USB or VM. Includes KOPPA v3.0.1, 50+ security tools, KOPPA-C2.</p>
+      <p class="download-meta">ARCHITECTURE: amd64 &nbsp;·&nbsp; BASED ON: Debian 12 Bookworm &nbsp;·&nbsp; GREETER: KOPPA-OS Custom</p>
+      <div class="sha-box">
+        <div class="sha-label">SHA256</div>
+        <span id="sha256-val">Loading checksum...</span>
+      </div>
     </div>
     <div>
-      <a href="https://github.com/guea14012/koppa-os/releases/latest"
+      <a id="dl-btn" href="https://github.com/guea14012/koppa-os/releases/latest"
          class="btn btn-primary" target="_blank">&#11015; Download ISO</a>
       <div style="text-align:center;margin-top:10px;font-size:11px;color:var(--muted)">
-        Built by GitHub Actions
+        Built by GitHub Actions &nbsp;·&nbsp; <span id="dl-size">—</span>
       </div>
     </div>
   </div>
@@ -288,6 +359,31 @@
   <div style="margin-top:6px">For authorized security testing only &nbsp;·&nbsp; MIT License</div>
 </footer>
 
-<script></script>
+<script>
+(async () => {
+  try {
+    const r = await fetch('https://api.github.com/repos/guea14012/koppa-os/releases/latest');
+    const data = await r.json();
+    const iso = data.assets?.find(a => a.name.endsWith('.iso'));
+    if (!iso) return;
+
+    // Update version
+    document.getElementById('dl-version').textContent = 'KOPPA-OS ' + data.tag_name;
+
+    // Update download button
+    document.getElementById('dl-btn').href = iso.browser_download_url;
+
+    // File size
+    const mb = (iso.size / 1024 / 1024).toFixed(0);
+    document.getElementById('dl-size').textContent = mb + ' MB';
+
+    // SHA256 — parse from release body
+    const sha = data.body?.match(/sha256[:\s]+([a-f0-9]{64})/i)?.[1];
+    document.getElementById('sha256-val').textContent = sha || 'See release page for checksum';
+  } catch(e) {
+    document.getElementById('sha256-val').textContent = 'See release page for checksum';
+  }
+})();
+</script>
 </body>
 </html>
