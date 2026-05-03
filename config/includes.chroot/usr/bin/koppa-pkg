@@ -55,6 +55,22 @@ def cmd_install(args):
     except Exception as e:
         err(f"Download failed: {e}")
 
+def cmd_search(args):
+    if not args: err("Usage: koppa pkg search <keyword>")
+    kw  = args[0].lower()
+    idx = fetch_index()
+    hits = [p for p in idx["packages"]
+            if kw in p["name"].lower() or kw in p["description"].lower()
+            or any(kw in t for t in p["tags"])]
+    if not hits:
+        print(f"No packages matching '{kw}'"); return
+    print(f"\n{BOLD}Search results for '{kw}'{RESET}\n")
+    for p in hits:
+        inst = os.path.exists(f"{PKG_DIR}/{p['name']}.kpkg")
+        status = f"{GREEN}installed{RESET}" if inst else f"{MUTED}available{RESET}"
+        print(f"  {BOLD}{p['name']:<28}{RESET} {status}")
+        print(f"  {MUTED}{p['description']}{RESET}\n")
+
 def cmd_remove(args):
     if not args: err("Usage: koppa pkg remove <package>")
     name = args[0]
@@ -88,6 +104,7 @@ def cmd_update(args):
 
 COMMANDS = {
     "list":    cmd_list,
+    "search":  cmd_search,
     "install": cmd_install,
     "remove":  cmd_remove,
     "rm":      cmd_remove,
@@ -102,6 +119,7 @@ def main():
 {BOLD}koppa-pkg{RESET} — KOPPA Package Manager
 
   {CYAN}koppa pkg list{RESET}              List all available packages
+  {CYAN}koppa pkg search  <keyword>{RESET} Search packages by name/tag
   {CYAN}koppa pkg install <name>{RESET}    Install a package
   {CYAN}koppa pkg remove  <name>{RESET}    Remove a package
   {CYAN}koppa pkg info    <name>{RESET}    Show package details
