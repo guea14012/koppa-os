@@ -1,0 +1,114 @@
+## koppa package: koppa-privesc
+## version: 1.0.0
+## description: Privilege escalation checker — Linux/Windows SUID, sudo, cron, writable paths, kernel
+## author: KOPPA-OS
+## tags: privesc, linux, windows, post-exploitation
+
+import sys, log, net
+
+fn check_linux() {
+    log.info("[koppa-privesc] Linux Privilege Escalation Checks")
+
+    # SUID binaries
+    log.info("\n[*] SUID binaries:")
+    let suids = sys.exec("find / -perm -4000 -type f 2>/dev/null")
+    for f in suids.split("\n") {
+        if f != "" { log.ok("[+] SUID: " + f) }
+    }
+
+    # Sudo rights
+    log.info("\n[*] Sudo rights:")
+    let sudo = sys.exec("sudo -l 2>/dev/null")
+    if sudo.contains("NOPASSWD") {
+        log.ok("[+] NOPASSWD sudo found!\n" + sudo)
+    } else {
+        log.muted(sudo)
+    }
+
+    # Writable /etc files
+    log.info("\n[*] Writable sensitive files:")
+    for f in ["/etc/passwd", "/etc/shadow", "/etc/sudoers", "/etc/crontab"] {
+        let w = sys.exec("ls -la " + f + " 2>/dev/null")
+        if w.contains("-rw") and not w.contains("rw-------") {
+            log.ok("[+] Writable: " + f)
+        }
+    }
+
+    # Cron jobs
+    log.info("\n[*] Cron jobs:")
+    let cron = sys.exec("cat /etc/crontab /var/spool/cron/* 2>/dev/null")
+    log.muted(cron)
+
+    # Capabilities
+    log.info("\n[*] Linux capabilities:")
+    let caps = sys.exec("getcap -r / 2>/dev/null")
+    for line in caps.split("\n") {
+        if line.contains("cap_setuid") or line.contains("cap_net_raw") {
+            log.ok("[+] Dangerous cap: " + line)
+        }
+    }
+
+    # Kernel version
+    log.info("\n[*] Kernel version:")
+    let kern = sys.exec("uname -a")
+    log.ok("[+] " + kern)
+    log.muted("    Check: https://github.com/mzet-/linux-exploit-suggester")
+
+    # World-writable directories in PATH
+    log.info("\n[*] Writable PATH entries:")
+    let path = sys.exec("echo $PATH").split(":")
+    for p in path {
+        let w = sys.exec("ls -ld " + p + " 2>/dev/null")
+        if w.contains("rwxrwx") or w.contains("rwxrwxrwx") {
+            log.ok("[+] Writable PATH dir: " + p)
+        }
+    }
+}
+
+fn check_windows() {
+    log.info("[koppa-privesc] Windows Privilege Escalation Checks")
+
+    log.info("\n[*] Current user privileges:")
+    log.muted(sys.exec("whoami /priv"))
+
+    log.info("\n[*] Unquoted service paths:")
+    let svcs = sys.exec("wmic service get name,pathname 2>nul")
+    for line in svcs.split("\n") {
+        if not line.contains("\"") and line.contains(" ") and line.contains("\\") {
+            log.ok("[+] Unquoted: " + line.trim())
+        }
+    }
+
+    log.info("\n[*] AlwaysInstallElevated:")
+    let reg1 = sys.exec("reg query HKCU\\SOFTWARE\\Policies\\Microsoft\\Windows\\Installer /v AlwaysInstallElevated 2>nul")
+    let reg2 = sys.exec("reg query HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\Installer /v AlwaysInstallElevated 2>nul")
+    if reg1.contains("0x1") and reg2.contains("0x1") {
+        log.ok("[+] AlwaysInstallElevated enabled!")
+    }
+
+    log.info("\n[*] Scheduled tasks writable:")
+    log.muted(sys.exec("schtasks /query /fo LIST /v 2>nul | findstr /i \"task name run as user\""))
+}
+
+fn suggest_exploit(kernel_ver) {
+    log.info("[*] Looking up kernel exploits for: " + kernel_ver)
+    let url  = "https://raw.githubusercontent.com/mzet-/linux-exploit-suggester/master/linux-exploit-suggester.sh"
+    let data = net.http_get(url).body
+    if data != "" {
+        sys.write_file("/tmp/les.sh", data)
+        sys.exec("chmod +x /tmp/les.sh")
+        let out = sys.exec("/tmp/les.sh")
+        log.ok("[+] Exploit suggestions:\n" + out)
+    }
+}
+
+fn main(args) {
+    let os   = args[0] or "linux"
+    let mode = args[1] or "all"
+    if os == "linux"   { check_linux() }
+    if os == "windows" { check_windows() }
+    if os == "suggest" {
+        let kv = sys.exec("uname -r")
+        suggest_exploit(kv)
+    }
+}

