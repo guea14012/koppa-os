@@ -1,0 +1,62 @@
+# koppa-network-map v1.0 — Network discovery and mapping
+# Usage: koppa run koppa-network-map <cidr> [discover|services|full]
+
+import scan, net, recon, dns, log, report, sys
+
+fn cmd_discover(cidr) {
+    log.info("===== Host Discovery: {cidr} =====")
+    let out = sys.exec("nmap -sn {cidr} 2>/dev/null")
+    let hosts = []
+    for line in out.split("\n") {
+        if line.contains("Nmap scan report for") {
+            let host = line.replace("Nmap scan report for ", "")
+            log.success("[+] {host}")
+            hosts.push(host)
+        }
+    }
+    log.info("Found {hosts.len} hosts")
+    return hosts
+}
+
+fn cmd_services(host) {
+    log.info("===== Service Scan: {host} =====")
+    let ports  = [21, 22, 23, 25, 53, 80, 110, 443, 445, 3306, 3389, 6379, 8080]
+    let findings = []
+    for port in ports {
+        if scan.tcp(host, port) {
+            let svc    = scan.service(port)
+            let banner = net.tcp_banner(host, port)
+            log.success("[+] {port}/tcp  {svc}  {banner}")
+            findings.push(report.finding("{port}/tcp", "Info", "Service: {svc}"))
+        }
+    }
+    return findings
+}
+
+fn cmd_full(cidr) {
+    log.info("===== Full Network Map: {cidr} =====")
+    let hosts = cmd_discover(cidr)
+    let all_findings = []
+    for host in hosts {
+        log.info("")
+        let svcs = cmd_services(host)
+        for f in svcs { all_findings.push(f) }
+    }
+    let rpt = report.terminal(all_findings)
+    log.info("")
+    log.info(rpt)
+}
+
+fn main() {
+    let cidr = __args__[0]
+    let mode = __args__[1]
+    if not cidr {
+        log.warn("Usage: koppa run koppa-network-map <cidr|host> [discover|services|full]")
+        return
+    }
+    log.info("===== KOPPA Network Mapper v1.0 =====")
+    if not mode or mode == "discover" { cmd_discover(cidr) }
+    if mode == "services" { cmd_services(cidr) }
+    if mode == "full"     { cmd_full(cidr) }
+    log.success("Network map complete!")
+}

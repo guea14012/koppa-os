@@ -1,0 +1,93 @@
+# koppa-privesc v1.0 — Privilege escalation checker
+# Usage: koppa run koppa-privesc [linux|windows]
+
+import sys, log, report
+
+fn check_linux() {
+    log.info("===== Linux PrivEsc Checks =====")
+    let findings = []
+
+    log.info("[*] SUID binaries:")
+    let suids = sys.exec("find / -perm -4000 -type f 2>/dev/null")
+    for f in suids.split("\n") {
+        if f {
+            log.success("[+] SUID: {f}")
+            findings.push(report.finding("SUID binary", "Medium", f))
+        }
+    }
+
+    log.info("")
+    log.info("[*] Sudo rights:")
+    let sudo_out = sys.exec("sudo -l 2>/dev/null")
+    if sudo_out.contains("NOPASSWD") {
+        log.success("[+] NOPASSWD sudo found!")
+        findings.push(report.finding("NOPASSWD sudo", "High", sudo_out))
+    } else {
+        log.info(sudo_out)
+    }
+
+    log.info("")
+    log.info("[*] Writable /etc files:")
+    let etc_files = ["/etc/passwd", "/etc/shadow", "/etc/sudoers", "/etc/crontab"]
+    for f in etc_files {
+        let info = sys.exec("ls -la {f} 2>/dev/null")
+        if info.contains("-rw") and not info.contains("rw-------") {
+            log.success("[+] Writable: {f}")
+            findings.push(report.finding("Writable sensitive file", "Critical", f))
+        }
+    }
+
+    log.info("")
+    log.info("[*] Linux capabilities:")
+    let caps = sys.exec("getcap -r / 2>/dev/null")
+    for line in caps.split("\n") {
+        if line.contains("cap_setuid") or line.contains("cap_net_raw") {
+            log.success("[+] Dangerous capability: {line}")
+            findings.push(report.finding("Dangerous capability", "High", line))
+        }
+    }
+
+    log.info("")
+    log.info("[*] Kernel version:")
+    let kern = sys.exec("uname -a")
+    log.info(kern)
+    log.info("    Run: linux-exploit-suggester for kernel exploits")
+
+    let rpt = report.terminal(findings)
+    log.info("")
+    log.info(rpt)
+    return findings
+}
+
+fn check_windows() {
+    log.info("===== Windows PrivEsc Checks =====")
+
+    log.info("[*] Current privileges:")
+    log.info(sys.exec("whoami /priv"))
+
+    log.info("[*] Unquoted service paths:")
+    let svcs = sys.exec("wmic service get name,pathname 2>nul")
+    for line in svcs.split("\n") {
+        if not line.contains("\"") and line.contains(" ") and line.contains("\\") {
+            log.success("[+] Unquoted: {line}")
+        }
+    }
+
+    log.info("[*] AlwaysInstallElevated:")
+    let reg1 = sys.exec("reg query HKCU\\SOFTWARE\\Policies\\Microsoft\\Windows\\Installer /v AlwaysInstallElevated 2>nul")
+    let reg2 = sys.exec("reg query HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\Installer /v AlwaysInstallElevated 2>nul")
+    if reg1.contains("0x1") and reg2.contains("0x1") {
+        log.success("[+] AlwaysInstallElevated enabled!")
+    }
+}
+
+fn main() {
+    let os_type = __args__[0]
+
+    log.info("===== KOPPA PrivEsc v1.0 =====")
+
+    if not os_type or os_type == "linux"   { check_linux() }
+    if os_type == "windows" { check_windows() }
+
+    log.success("PrivEsc check complete!")
+}

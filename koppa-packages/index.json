@@ -1,4 +1,4 @@
-{
+﻿{
   "registry": "KOPPA Package Registry",
   "version": "2.0",
   "base_url": "https://raw.githubusercontent.com/guea14012/koppa-os/main/koppa-packages",
@@ -8,133 +8,134 @@
       "version": "2.0.0",
       "description": "Advanced TCP/UDP port scanner with service detection and banner grabbing",
       "tags": ["network", "recon", "scanning"],
-      "file": "koppa-portscan.kpkg"
+      "file": "koppa-portscan.kop"
     },
     {
       "name": "koppa-webfuzz",
       "version": "2.0.0",
-      "description": "Web fuzzer — directory/file brute-force, parameter injection, vhost discovery",
+      "description": "Web fuzzer â€” directory/file brute-force, parameter injection, vhost discovery",
       "tags": ["web", "fuzzing", "recon"],
-      "file": "koppa-webfuzz.kpkg"
+      "file": "koppa-webfuzz.kop"
     },
     {
       "name": "koppa-jwt-attack",
       "version": "2.0.0",
-      "description": "JWT token attack toolkit — decode, forge, alg-none, brute-force secret",
+      "description": "JWT token attack toolkit â€” decode, forge, alg-none, brute-force secret",
       "tags": ["web", "auth", "jwt", "crypto"],
-      "file": "koppa-jwt-attack.kpkg"
+      "file": "koppa-jwt-attack.kop"
     },
     {
       "name": "koppa-hashcrack",
       "version": "2.0.0",
-      "description": "Hash identification and cracking — MD5/SHA/bcrypt/NTLM wordlist & rules",
+      "description": "Hash identification and cracking â€” MD5/SHA/bcrypt/NTLM wordlist & rules",
       "tags": ["crypto", "password", "cracking"],
-      "file": "koppa-hashcrack.kpkg"
+      "file": "koppa-hashcrack.kop"
     },
     {
       "name": "koppa-recon",
       "version": "2.0.0",
-      "description": "Passive & active recon — subdomain enum, DNS, WHOIS, email harvest",
+      "description": "Passive & active recon â€” subdomain enum, DNS, WHOIS, email harvest",
       "tags": ["recon", "osint", "subdomain", "dns"],
-      "file": "koppa-recon.kpkg"
+      "file": "koppa-recon.kop"
     },
     {
       "name": "koppa-exploit",
       "version": "2.0.0",
-      "description": "Exploit helper — CVE lookup, payload gen, shellcode, reverse shell builder",
+      "description": "Exploit helper â€” CVE lookup, payload gen, shellcode, reverse shell builder",
       "tags": ["exploit", "payload", "shellcode", "cve"],
-      "file": "koppa-exploit.kpkg"
+      "file": "koppa-exploit.kop"
     },
     {
       "name": "koppa-evasion",
       "version": "2.0.0",
-      "description": "AV/EDR evasion — AMSI bypass, ETW patch, anti-debug, anti-VM, obfuscation",
+      "description": "AV/EDR evasion â€” AMSI bypass, ETW patch, anti-debug, anti-VM, obfuscation",
       "tags": ["evasion", "av", "amsi", "etw"],
-      "file": "koppa-evasion.kpkg"
+      "file": "koppa-evasion.kop"
     },
     {
       "name": "koppa-bruteforce",
       "version": "2.0.0",
-      "description": "Multi-protocol brute forcer — SSH, FTP, HTTP, SMB, RDP, MySQL, Redis",
+      "description": "Multi-protocol brute forcer â€” SSH, FTP, HTTP, SMB, RDP, MySQL, Redis",
       "tags": ["bruteforce", "credential", "password"],
-      "file": "koppa-bruteforce.kpkg"
+      "file": "koppa-bruteforce.kop"
     },
     {
       "name": "koppa-c2-client",
       "version": "2.0.0",
-      "description": "KOPPA-C2 agent — connect to C2, execute tasks, exfil data over HTTP/DNS",
+      "description": "KOPPA-C2 agent â€” connect to C2, execute tasks, exfil data over HTTP/DNS",
       "tags": ["c2", "agent", "covert", "exfil"],
-      "file": "koppa-c2-client.kpkg"
+      "file": "koppa-c2-client.kop"
     },
     {
       "name": "koppa-sqli",
       "version": "1.0.0",
-      "description": "SQL Injection tester — error-based, blind, time-based, union, dump tables",
+      "description": "SQL Injection tester â€” error-based, blind, time-based, union, dump tables",
       "tags": ["web", "sqli", "database", "injection"],
-      "file": "koppa-sqli.kpkg"
+      "file": "koppa-sqli.kop"
     },
     {
       "name": "koppa-xss",
       "version": "1.0.0",
-      "description": "XSS scanner — reflected, stored, DOM, polyglot, CSP bypass, steal cookies",
+      "description": "XSS scanner â€” reflected, stored, DOM, polyglot, CSP bypass, steal cookies",
       "tags": ["web", "xss", "injection", "javascript"],
-      "file": "koppa-xss.kpkg"
+      "file": "koppa-xss.kop"
     },
     {
       "name": "koppa-lfi",
       "version": "1.0.0",
-      "description": "LFI/RFI tester — path traversal, log poisoning, PHP wrapper, RCE via LFI",
+      "description": "LFI/RFI tester â€” path traversal, log poisoning, PHP wrapper, RCE via LFI",
       "tags": ["web", "lfi", "rfi", "traversal", "rce"],
-      "file": "koppa-lfi.kpkg"
+      "file": "koppa-lfi.kop"
     },
     {
       "name": "koppa-ssrf",
       "version": "1.0.0",
-      "description": "SSRF detection — internal scan, cloud metadata (AWS/GCP), protocol smuggling",
+      "description": "SSRF detection â€” internal scan, cloud metadata (AWS/GCP), protocol smuggling",
       "tags": ["web", "ssrf", "cloud", "aws", "gcp"],
-      "file": "koppa-ssrf.kpkg"
+      "file": "koppa-ssrf.kop"
     },
     {
       "name": "koppa-privesc",
       "version": "1.0.0",
-      "description": "Privilege escalation checker — Linux SUID/sudo/cron, Windows services/registry",
+      "description": "Privilege escalation checker â€” Linux SUID/sudo/cron, Windows services/registry",
       "tags": ["privesc", "linux", "windows", "post-exploitation"],
-      "file": "koppa-privesc.kpkg"
+      "file": "koppa-privesc.kop"
     },
     {
       "name": "koppa-ad",
       "version": "1.0.0",
-      "description": "Active Directory attacks — Kerberoasting, AS-REP, Pass-the-Hash, BloodHound, spray",
+      "description": "Active Directory attacks â€” Kerberoasting, AS-REP, Pass-the-Hash, BloodHound, spray",
       "tags": ["activedirectory", "kerberos", "windows", "lateral-movement"],
-      "file": "koppa-ad.kpkg"
+      "file": "koppa-ad.kop"
     },
     {
       "name": "koppa-network-map",
       "version": "1.0.0",
-      "description": "Network mapping — host discovery, OS detection, service fingerprint, vuln scan",
+      "description": "Network mapping â€” host discovery, OS detection, service fingerprint, vuln scan",
       "tags": ["network", "recon", "mapping", "discovery"],
-      "file": "koppa-network-map.kpkg"
+      "file": "koppa-network-map.kop"
     },
     {
       "name": "koppa-api",
       "version": "1.0.0",
-      "description": "API security tester — endpoint discovery, auth bypass, IDOR, rate-limit, GraphQL",
+      "description": "API security tester â€” endpoint discovery, auth bypass, IDOR, rate-limit, GraphQL",
       "tags": ["web", "api", "rest", "graphql", "idor"],
-      "file": "koppa-api.kpkg"
+      "file": "koppa-api.kop"
     },
     {
       "name": "koppa-stealth",
       "version": "1.0.0",
-      "description": "Stealth ops — DNS/ICMP tunnel, log cleanup, process hiding, port forward, timestomp",
+      "description": "Stealth ops â€” DNS/ICMP tunnel, log cleanup, process hiding, port forward, timestomp",
       "tags": ["stealth", "covert", "tunnel", "opsec", "post-exploitation"],
-      "file": "koppa-stealth.kpkg"
+      "file": "koppa-stealth.kop"
     },
     {
       "name": "koppa-phish",
       "version": "1.0.0",
-      "description": "Phishing toolkit — clone sites, credential harvester, email spoofer, payload delivery",
+      "description": "Phishing toolkit â€” clone sites, credential harvester, email spoofer, payload delivery",
       "tags": ["phishing", "social-engineering", "credential", "email"],
-      "file": "koppa-phish.kpkg"
+      "file": "koppa-phish.kop"
     }
   ]
 }
+

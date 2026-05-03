@@ -1,0 +1,84 @@
+# koppa-api v1.0 — API security tester
+# Usage: koppa run koppa-api <base_url> [discover|idor|graphql|ratelimit]
+
+import http, parse, encode, log, report
+
+let API_PATHS = ["api", "api/v1", "api/v2", "v1", "v2", "rest",
+                 "graphql", "swagger", "swagger.json", "openapi.json",
+                 "api/users", "api/admin", "api/auth", "api/token",
+                 "actuator", "actuator/health", "actuator/env", "metrics"]
+
+fn cmd_discover(base_url) {
+    log.info("===== API Endpoint Discovery: {base_url} =====")
+    let findings = []
+    for path in API_PATHS {
+        let resp = http.get("{base_url}/{path}")
+        if resp.status != 404 and resp.status != 0 {
+            log.success("[{resp.status}] {base_url}/{path}  ({resp.body.len}b)")
+            findings.push(report.finding("API Endpoint", "Info", "{base_url}/{path} [{resp.status}]"))
+        }
+    }
+    if findings.len == 0 { log.warn("[-] No API endpoints found") }
+    return findings
+}
+
+fn cmd_idor(base_url, endpoint) {
+    log.info("===== IDOR Test: {base_url}{endpoint}/<id> =====")
+    let findings = []
+    let i = 1
+    for id in [1, 2, 3, 4, 5, 10, 100, 1000] {
+        let resp = http.get("{base_url}{endpoint}/{id}")
+        if resp.status == 200 {
+            log.success("[+] IDOR: id={id}  ({resp.body.len}b)")
+            findings.push(report.finding("IDOR", "High", "ID {id} accessible at {endpoint}"))
+        }
+    }
+    if findings.len == 0 { log.warn("[-] No IDOR found in ID range") }
+    return findings
+}
+
+fn cmd_graphql(url) {
+    log.info("===== GraphQL Introspection: {url} =====")
+    let query = "{\"query\":\"{__schema{types{name}}}\"}"
+    let resp  = http.post(url, query)
+    if resp.body.contains("__schema") {
+        log.success("[+] Introspection enabled!")
+        let types_resp = http.post(url, "{\"query\":\"{__schema{types{name fields{name}}}}\"}")
+        log.info(types_resp.body)
+        return report.finding("GraphQL Introspection", "Medium", "Introspection enabled at {url}")
+    }
+    log.warn("[-] Introspection disabled")
+}
+
+fn cmd_auth_bypass(url) {
+    log.info("===== Auth Bypass Tests: {url} =====")
+    let tests = [
+        {"X-Original-URL": "/admin"},
+        {"X-Forwarded-For": "127.0.0.1"},
+        {"X-Custom-IP-Authorization": "127.0.0.1"},
+        {"Authorization": "Bearer null"},
+        {"Authorization": "null"}
+    ]
+    for headers in tests {
+        let resp = http.get_with_headers(url, headers)
+        if resp.status == 200 {
+            log.success("[+] Auth bypass with headers: {headers}")
+        }
+    }
+}
+
+fn main() {
+    let url   = __args__[0]
+    let mode  = __args__[1]
+    let arg3  = __args__[2]
+    if not url {
+        log.warn("Usage: koppa run koppa-api <url> [discover|idor <endpoint>|graphql|auth-bypass]")
+        return
+    }
+    log.info("===== KOPPA API Tester v1.0 =====")
+    if not mode or mode == "discover" { cmd_discover(url) }
+    if mode == "idor"        { cmd_idor(url, arg3) }
+    if mode == "graphql"     { cmd_graphql(url) }
+    if mode == "auth-bypass" { cmd_auth_bypass(url) }
+    log.success("API test complete!")
+}

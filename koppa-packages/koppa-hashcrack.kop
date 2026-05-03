@@ -1,0 +1,67 @@
+# koppa-hashcrack v2.0 — Hash identification and cracking
+# Usage: koppa run koppa-hashcrack <hash> [identify|crack|ntlm]
+
+import hash, encode, log, report
+
+fn cmd_identify(h) {
+    log.info("===== Hash Identify =====")
+    let htype = hash.identify(h)
+    log.info("Hash  : {h}")
+    log.success("Type  : {htype}")
+    return htype
+}
+
+fn cmd_crack(h) {
+    log.info("===== Wordlist Crack =====")
+    let wordlist = ["password", "123456", "admin", "koppa", "letmein",
+                    "password123", "qwerty", "abc123", "monkey", "dragon",
+                    "master", "12345678", "sunshine", "princess", "welcome"]
+    for word in wordlist {
+        let md5check  = hash.md5(word)
+        let sha1check = hash.sha1(word)
+        let sha256chk = hash.sha256(word)
+        let ntlmcheck = hash.ntlm(word)
+        if md5check == h or sha1check == h or sha256chk == h or ntlmcheck == h {
+            log.success("[+] Cracked! Plaintext: {word}")
+            return word
+        }
+    }
+    log.warn("[-] Not cracked with built-in wordlist")
+    log.info("    Tip: Use hashcat -m 0 {h} rockyou.txt")
+    return ""
+}
+
+fn cmd_generate(plaintext) {
+    log.info("===== Hash Generation =====")
+    log.info("Input  : {plaintext}")
+    log.info("MD5    : {hash.md5(plaintext)}")
+    log.info("SHA1   : {hash.sha1(plaintext)}")
+    log.info("SHA256 : {hash.sha256(plaintext)}")
+    log.info("NTLM   : {hash.ntlm(plaintext)}")
+    log.info("B64    : {encode.b64_encode(plaintext)}")
+    log.info("Hex    : {encode.hex_encode(plaintext)}")
+}
+
+fn main() {
+    let input = __args__[0]
+    let mode  = __args__[1]
+
+    if not input {
+        log.warn("Usage: koppa run koppa-hashcrack <hash|plaintext> [identify|crack|generate]")
+        return
+    }
+
+    log.info("===== KOPPA Hash Crack v2.0 =====")
+
+    if mode == "identify" { cmd_identify(input) }
+    if mode == "crack"    { cmd_crack(input) }
+    if mode == "generate" { cmd_generate(input) }
+
+    if not mode {
+        cmd_identify(input)
+        log.info("")
+        cmd_crack(input)
+    }
+
+    log.success("Done!")
+}

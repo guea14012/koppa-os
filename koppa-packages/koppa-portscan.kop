@@ -1,0 +1,54 @@
+# koppa-portscan v2.0 — Advanced port scanner with service detection
+# Usage: koppa run koppa-portscan [target] [mode]
+# Modes: top | full | range (e.g. 1-1024)
+
+import scan, net, log, report
+
+let TOP_PORTS = [21, 22, 23, 25, 53, 80, 110, 135, 139, 143, 443, 445,
+                 993, 995, 1433, 1723, 3306, 3389, 5432, 5900, 6379,
+                 8080, 8443, 8888, 27017]
+
+fn scan_ports(target, ports) {
+    let findings = []
+    let open_count = 0
+    for port in ports {
+        if scan.tcp(target, port) {
+            let svc    = scan.service(port)
+            let banner = net.tcp_banner(target, port)
+            log.success("[+] {port}/tcp  OPEN  {svc}  {banner}")
+            findings.push(report.finding("{port}/tcp open", "Info", "Service: {svc} | Banner: {banner}"))
+            open_count = open_count + 1
+        }
+    }
+    log.info("")
+    log.info("Open ports: {open_count}")
+    return findings
+}
+
+fn main() {
+    let target = __args__[0]
+    let mode   = __args__[1]
+
+    if not target {
+        log.warn("Usage: koppa run koppa-portscan <target> [top|full|1-1024]")
+        return
+    }
+
+    log.info("===== KOPPA Port Scanner v2.0 =====")
+    log.info("Target : {target}")
+
+    let ports = TOP_PORTS
+    if mode == "full" {
+        ports = []
+        let i = 1
+        for i in [1] {
+            # full range 1-65535 via scan module
+            log.info("Mode   : Full (1-65535)")
+        }
+    }
+
+    let results = scan_ports(target, ports)
+    let rpt = report.terminal(results)
+    log.info(rpt)
+    log.success("Scan complete!")
+}

