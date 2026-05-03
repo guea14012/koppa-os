@@ -1,5 +1,10 @@
-#!/bin/bash
-# KOPPA-C2 Command & Control Server
-HOST="${1:-0.0.0.0}"
-PORT="${2:-8443}"
-exec python3 /usr/share/koppa-c2/server/c2_server.py "$HOST" "$PORT"
+#!/usr/bin/env python3
+"""KOPPA-C2 launcher"""
+import sys, os
+sys.path.insert(0, "/usr/share/koppa-c2")
+from server import start_c2
+args  = sys.argv[1:]
+host  = args[0] if len(args) > 0 else "0.0.0.0"
+port  = int(args[1]) if len(args) > 1 else 8443
+webui = int(args[2]) if len(args) > 2 else 8444
+start_c2(host, port, webui)

@@ -1,11 +1,73 @@
-#!/bin/bash
-# KOPPA Language runner
-if [ "$1" = "pkg" ]; then shift; exec koppa-pkg "$@"; fi
-if python3 -c "import koppa" 2>/dev/null; then
-    exec python3 -m koppa "$@"
-elif [ -f /usr/share/koppa/src/koppa.py ]; then
-    exec python3 /usr/share/koppa/src/koppa.py "$@"
-else
-    echo "KOPPA not found. Install: pip3 install koppa-lang"
-    exit 1
-fi
+#!/usr/bin/env python3
+"""KOPPA Language — main entry point"""
+import sys, os
+
+INTERP = "/usr/share/koppa/interpreter.py"
+PKG_DIR = "/usr/share/koppa/packages"
+
+def usage():
+    print("""
+\033[1mKOPPA v3.0\033[0m — Security-Native Language
+
+  \033[96mkoppa repl\033[0m                     Interactive shell
+  \033[96mkoppa run <file.kop|.kpkg>\033[0m     Run a KOPPA script
+  \033[96mkoppa pkg <cmd> [args]\033[0m         Package manager
+  \033[96mkoppa-c2 [host] [port]\033[0m         Start C2 server
+
+Examples:
+  koppa run scan.kop
+  koppa pkg install koppa-portscan
+  koppa pkg list
+""")
+
+def main():
+    args = sys.argv[1:]
+
+    # koppa pkg → koppa-pkg
+    if args and args[0] == "pkg":
+        os.execvp("koppa-pkg", ["koppa-pkg"] + args[1:])
+
+    # koppa repl
+    if not args or args[0] == "repl":
+        sys.path.insert(0, "/usr/share/koppa")
+        from interpreter import repl
+        repl()
+        return
+
+    # koppa run <file>
+    if args[0] == "run":
+        if len(args) < 2:
+            print("Usage: koppa run <file.kop|.kpkg> [args...]")
+            sys.exit(1)
+        path = args[1]
+        # If just a package name (no path/extension), look in PKG_DIR
+        if not os.path.exists(path):
+            candidates = [
+                path,
+                path + ".kpkg",
+                path + ".kop",
+                os.path.join(PKG_DIR, path + ".kpkg"),
+                os.path.join(PKG_DIR, path),
+            ]
+            for c in candidates:
+                if os.path.exists(c): path = c; break
+            else:
+                print(f"\033[91m[-]\033[0m File not found: {args[1]}")
+                sys.exit(1)
+        sys.path.insert(0, "/usr/share/koppa")
+        from interpreter import run_file
+        run_file(path, args[2:])
+        return
+
+    # koppa <file> (shorthand)
+    if os.path.exists(args[0]):
+        sys.path.insert(0, "/usr/share/koppa")
+        from interpreter import run_file
+        run_file(args[0], args[1:])
+        return
+
+    usage()
+    sys.exit(1)
+
+if __name__ == "__main__":
+    main()

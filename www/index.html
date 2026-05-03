@@ -268,8 +268,8 @@
     </div>
     <div class="feat">
       <div class="feat-icon">🦑</div>
-      <h3>KOPPA-C2 Framework</h3>
-      <p>HTTP/DNS command & control framework. Multi-agent, encrypted comms, operator console included.</p>
+      <h3>KOPPA-C2 + Web Console</h3>
+      <p>HTTP/DNS C2 framework with built-in web operator dashboard. Multi-agent, real-time task execution, exfil.</p>
     </div>
     <div class="feat">
       <div class="feat-icon">🔴</div>
@@ -396,64 +396,29 @@
 
 <!-- Packages -->
 <section id="packages">
-  <p class="section-tag">KOPPA Registry</p>
+  <p class="section-tag">KOPPA Registry — 19 Packages</p>
   <h2>KOPPA <span>Packages</span></h2>
-  <p class="section-desc">Security modules written in KOPPA language. Install with one command.</p>
+  <p class="section-desc">Security modules written entirely in KOPPA language. Install with one command.</p>
   <div class="pkg-grid">
-    <div class="pkg">
-      <div class="pkg-name"><span>koppa</span>-portscan</div>
-      <div class="pkg-desc">Advanced TCP/UDP port scanner with service detection and banner grabbing</div>
-      <div class="pkg-tags"><span class="pkg-tag">network</span><span class="pkg-tag">recon</span><span class="pkg-tag">scanning</span></div>
-      <div class="pkg-cmd">koppa pkg install koppa-portscan</div>
-    </div>
-    <div class="pkg">
-      <div class="pkg-name"><span>koppa</span>-webfuzz</div>
-      <div class="pkg-desc">Web fuzzer — directory/file brute-force, parameter injection, vhost discovery</div>
-      <div class="pkg-tags"><span class="pkg-tag">web</span><span class="pkg-tag">fuzzing</span><span class="pkg-tag">recon</span></div>
-      <div class="pkg-cmd">koppa pkg install koppa-webfuzz</div>
-    </div>
-    <div class="pkg">
-      <div class="pkg-name"><span>koppa</span>-jwt-attack</div>
-      <div class="pkg-desc">JWT toolkit — decode, forge, alg-none bypass, brute-force secret key</div>
-      <div class="pkg-tags"><span class="pkg-tag">web</span><span class="pkg-tag">auth</span><span class="pkg-tag">jwt</span></div>
-      <div class="pkg-cmd">koppa pkg install koppa-jwt-attack</div>
-    </div>
-    <div class="pkg">
-      <div class="pkg-name"><span>koppa</span>-hashcrack</div>
-      <div class="pkg-desc">Hash identification and cracking — MD5/SHA/bcrypt/NTLM with wordlist & rules</div>
-      <div class="pkg-tags"><span class="pkg-tag">crypto</span><span class="pkg-tag">password</span><span class="pkg-tag">cracking</span></div>
-      <div class="pkg-cmd">koppa pkg install koppa-hashcrack</div>
-    </div>
-    <div class="pkg">
-      <div class="pkg-name"><span>koppa</span>-recon</div>
-      <div class="pkg-desc">Passive & active recon — subdomain enum, DNS, WHOIS, email harvesting</div>
-      <div class="pkg-tags"><span class="pkg-tag">recon</span><span class="pkg-tag">osint</span><span class="pkg-tag">dns</span></div>
-      <div class="pkg-cmd">koppa pkg install koppa-recon</div>
-    </div>
-    <div class="pkg">
-      <div class="pkg-name"><span>koppa</span>-exploit</div>
-      <div class="pkg-desc">Exploit helper — CVE lookup, payload gen, reverse shell builder, msfvenom wrapper</div>
-      <div class="pkg-tags"><span class="pkg-tag">exploit</span><span class="pkg-tag">payload</span><span class="pkg-tag">cve</span></div>
-      <div class="pkg-cmd">koppa pkg install koppa-exploit</div>
-    </div>
-    <div class="pkg">
-      <div class="pkg-name"><span>koppa</span>-evasion</div>
-      <div class="pkg-desc">AV/EDR evasion — AMSI bypass, ETW patch, anti-debug, anti-VM, obfuscation</div>
-      <div class="pkg-tags"><span class="pkg-tag">evasion</span><span class="pkg-tag">amsi</span><span class="pkg-tag">av</span></div>
-      <div class="pkg-cmd">koppa pkg install koppa-evasion</div>
-    </div>
-    <div class="pkg">
-      <div class="pkg-name"><span>koppa</span>-bruteforce</div>
-      <div class="pkg-desc">Multi-protocol brute forcer — SSH, FTP, SMB, RDP, MySQL, Redis, HTTP form</div>
-      <div class="pkg-tags"><span class="pkg-tag">bruteforce</span><span class="pkg-tag">credential</span><span class="pkg-tag">auth</span></div>
-      <div class="pkg-cmd">koppa pkg install koppa-bruteforce</div>
-    </div>
-    <div class="pkg">
-      <div class="pkg-name"><span>koppa</span>-c2-client</div>
-      <div class="pkg-desc">C2 agent — connect to KOPPA-C2 server, execute tasks, exfil data over HTTP/DNS</div>
-      <div class="pkg-tags"><span class="pkg-tag">c2</span><span class="pkg-tag">agent</span><span class="pkg-tag">covert</span></div>
-      <div class="pkg-cmd">koppa pkg install koppa-c2-client</div>
-    </div>
+    <div class="pkg"><div class="pkg-name"><span>koppa</span>-portscan</div><div class="pkg-desc">TCP/UDP scanner with service detection and banner grabbing</div><div class="pkg-tags"><span class="pkg-tag">network</span><span class="pkg-tag">recon</span></div><div class="pkg-cmd">koppa pkg install koppa-portscan</div></div>
+    <div class="pkg"><div class="pkg-name"><span>koppa</span>-webfuzz</div><div class="pkg-desc">Web fuzzer — dir/file, param injection, vhost discovery</div><div class="pkg-tags"><span class="pkg-tag">web</span><span class="pkg-tag">fuzzing</span></div><div class="pkg-cmd">koppa pkg install koppa-webfuzz</div></div>
+    <div class="pkg"><div class="pkg-name"><span>koppa</span>-jwt-attack</div><div class="pkg-desc">JWT decode, forge, alg-none bypass, brute-force secret</div><div class="pkg-tags"><span class="pkg-tag">web</span><span class="pkg-tag">auth</span><span class="pkg-tag">jwt</span></div><div class="pkg-cmd">koppa pkg install koppa-jwt-attack</div></div>
+    <div class="pkg"><div class="pkg-name"><span>koppa</span>-hashcrack</div><div class="pkg-desc">MD5/SHA/bcrypt/NTLM cracking with wordlist & rule engine</div><div class="pkg-tags"><span class="pkg-tag">crypto</span><span class="pkg-tag">password</span></div><div class="pkg-cmd">koppa pkg install koppa-hashcrack</div></div>
+    <div class="pkg"><div class="pkg-name"><span>koppa</span>-recon</div><div class="pkg-desc">Subdomain enum, DNS, WHOIS, email harvesting</div><div class="pkg-tags"><span class="pkg-tag">recon</span><span class="pkg-tag">osint</span></div><div class="pkg-cmd">koppa pkg install koppa-recon</div></div>
+    <div class="pkg"><div class="pkg-name"><span>koppa</span>-exploit</div><div class="pkg-desc">CVE lookup, reverse shell builder, msfvenom wrapper</div><div class="pkg-tags"><span class="pkg-tag">exploit</span><span class="pkg-tag">cve</span></div><div class="pkg-cmd">koppa pkg install koppa-exploit</div></div>
+    <div class="pkg"><div class="pkg-name"><span>koppa</span>-evasion</div><div class="pkg-desc">AMSI/ETW bypass, anti-debug, anti-VM, obfuscation</div><div class="pkg-tags"><span class="pkg-tag">evasion</span><span class="pkg-tag">av</span></div><div class="pkg-cmd">koppa pkg install koppa-evasion</div></div>
+    <div class="pkg"><div class="pkg-name"><span>koppa</span>-bruteforce</div><div class="pkg-desc">SSH/FTP/SMB/RDP/MySQL/Redis/HTTP brute forcer</div><div class="pkg-tags"><span class="pkg-tag">bruteforce</span><span class="pkg-tag">cred</span></div><div class="pkg-cmd">koppa pkg install koppa-bruteforce</div></div>
+    <div class="pkg"><div class="pkg-name"><span>koppa</span>-c2-client</div><div class="pkg-desc">C2 agent — HTTP/DNS covert channel, task execution, exfil</div><div class="pkg-tags"><span class="pkg-tag">c2</span><span class="pkg-tag">covert</span></div><div class="pkg-cmd">koppa pkg install koppa-c2-client</div></div>
+    <div class="pkg"><div class="pkg-name"><span>koppa</span>-sqli</div><div class="pkg-desc">Error-based, blind, time-based SQLi + UNION dump tables</div><div class="pkg-tags"><span class="pkg-tag">web</span><span class="pkg-tag">sqli</span><span class="pkg-tag">db</span></div><div class="pkg-cmd">koppa pkg install koppa-sqli</div></div>
+    <div class="pkg"><div class="pkg-name"><span>koppa</span>-xss</div><div class="pkg-desc">Reflected/Stored/DOM XSS scanner + cookie stealer payload</div><div class="pkg-tags"><span class="pkg-tag">web</span><span class="pkg-tag">xss</span></div><div class="pkg-cmd">koppa pkg install koppa-xss</div></div>
+    <div class="pkg"><div class="pkg-name"><span>koppa</span>-lfi</div><div class="pkg-desc">Path traversal, PHP filter chain, log poisoning</div><div class="pkg-tags"><span class="pkg-tag">web</span><span class="pkg-tag">lfi</span><span class="pkg-tag">rce</span></div><div class="pkg-cmd">koppa pkg install koppa-lfi</div></div>
+    <div class="pkg"><div class="pkg-name"><span>koppa</span>-ssrf</div><div class="pkg-desc">SSRF: cloud metadata (AWS/GCP), internal scan, protocol test</div><div class="pkg-tags"><span class="pkg-tag">web</span><span class="pkg-tag">ssrf</span><span class="pkg-tag">cloud</span></div><div class="pkg-cmd">koppa pkg install koppa-ssrf</div></div>
+    <div class="pkg"><div class="pkg-name"><span>koppa</span>-privesc</div><div class="pkg-desc">Linux SUID/sudo/caps + Windows services/registry privesc</div><div class="pkg-tags"><span class="pkg-tag">privesc</span><span class="pkg-tag">linux</span><span class="pkg-tag">win</span></div><div class="pkg-cmd">koppa pkg install koppa-privesc</div></div>
+    <div class="pkg"><div class="pkg-name"><span>koppa</span>-ad</div><div class="pkg-desc">Kerberoast, AS-REP, Pass-the-Hash, BloodHound, spray</div><div class="pkg-tags"><span class="pkg-tag">AD</span><span class="pkg-tag">kerberos</span><span class="pkg-tag">windows</span></div><div class="pkg-cmd">koppa pkg install koppa-ad</div></div>
+    <div class="pkg"><div class="pkg-name"><span>koppa</span>-network-map</div><div class="pkg-desc">Host discovery, OS detect, service map, vuln scan, export</div><div class="pkg-tags"><span class="pkg-tag">network</span><span class="pkg-tag">mapping</span></div><div class="pkg-cmd">koppa pkg install koppa-network-map</div></div>
+    <div class="pkg"><div class="pkg-name"><span>koppa</span>-api</div><div class="pkg-desc">API: endpoint discovery, IDOR, auth bypass, GraphQL, rate-limit</div><div class="pkg-tags"><span class="pkg-tag">api</span><span class="pkg-tag">rest</span><span class="pkg-tag">graphql</span></div><div class="pkg-cmd">koppa pkg install koppa-api</div></div>
+    <div class="pkg"><div class="pkg-name"><span>koppa</span>-stealth</div><div class="pkg-desc">DNS/ICMP tunnel, log wipe, process hide, timestomp, portfwd</div><div class="pkg-tags"><span class="pkg-tag">stealth</span><span class="pkg-tag">opsec</span></div><div class="pkg-cmd">koppa pkg install koppa-stealth</div></div>
+    <div class="pkg"><div class="pkg-name"><span>koppa</span>-phish</div><div class="pkg-desc">Site clone, credential harvester, email spoofer, payload delivery</div><div class="pkg-tags"><span class="pkg-tag">phishing</span><span class="pkg-tag">social-eng</span></div><div class="pkg-cmd">koppa pkg install koppa-phish</div></div>
   </div>
 </section>
 
