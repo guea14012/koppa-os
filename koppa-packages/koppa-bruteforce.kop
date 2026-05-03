@@ -1,69 +1,78 @@
 # koppa-bruteforce v2.0 — Multi-protocol brute forcer
-# Usage: koppa run koppa-bruteforce <proto> <host> [users] [passwords]
+# Usage: koppa run koppa-bruteforce <ssh|ftp|http> <host> [extra]
 
-import brute, http, log, report
+import brute, log, report
 
-let DEFAULT_USERS = ["admin", "root", "administrator", "user", "test", "guest", "koppa"]
+let DEFAULT_USERS = ["admin", "root", "administrator", "user", "test", "guest"]
 let DEFAULT_PASS  = ["password", "123456", "admin", "root", "password123",
                      "letmein", "qwerty", "koppa123", "test", "1234"]
-
-fn cmd_ssh(host) {
-    log.info("===== SSH Brute Force: {host} =====")
-    let result = brute.ssh(host, DEFAULT_USERS, DEFAULT_PASS)
-    if result {
-        log.success("[+] Valid: {result.user}:{result.pass}")
-        return report.finding("SSH Weak Credentials", "Critical", "{result.user}:{result.pass} on {host}")
-    }
-    log.warn("[-] No valid SSH credentials found")
-}
 
 fn cmd_ftp(host) {
     log.info("===== FTP Brute Force: {host} =====")
     let result = brute.ftp(host, DEFAULT_USERS, DEFAULT_PASS)
     if result {
-        log.success("[+] Valid: {result.user}:{result.pass}")
-    } else {
+        let found = result.found
+        if found {
+            let user = result.user
+            let pass = result.pass
+            log.success("[+] Valid: {user}:{pass}")
+        }
+    }
+    if not result {
         log.warn("[-] No valid FTP credentials found")
     }
 }
 
-fn cmd_http(url, user_field, pass_field, fail_str) {
-    log.info("===== HTTP Form Brute: {url} =====")
-    let result = brute.http_form(url, user_field, pass_field, DEFAULT_USERS, DEFAULT_PASS, fail_str)
+fn cmd_http_basic(url) {
+    log.info("===== HTTP Basic Auth Brute: {url} =====")
+    let result = brute.http_basic(url, DEFAULT_USERS, DEFAULT_PASS)
     if result {
-        log.success("[+] Valid: {result.user}:{result.pass}")
-    } else {
+        let found = result.found
+        if found {
+            let user = result.user
+            let pass = result.pass
+            log.success("[+] Valid: {user}:{pass}")
+        }
+    }
+    if not result {
         log.warn("[-] No valid credentials found")
     }
 }
 
-fn cmd_smb(host) {
-    log.info("===== SMB Brute Force: {host} =====")
-    let result = brute.smb(host, DEFAULT_USERS, DEFAULT_PASS)
+fn cmd_http_form(url, user_field, pass_field, fail_str) {
+    log.info("===== HTTP Form Brute: {url} =====")
+    let result = brute.http_form(url, user_field, pass_field,
+                                  DEFAULT_USERS, DEFAULT_PASS, fail_str)
     if result {
-        log.success("[+] Valid: {result.user}:{result.pass}")
-    } else {
-        log.warn("[-] No valid SMB credentials found")
+        let found = result.found
+        if found {
+            let user = result.user
+            let pass = result.pass
+            log.success("[+] Valid: {user}:{pass}")
+        }
     }
+}
+
+fn run_brute(proto, host) {
+    if proto == "ftp"        { cmd_ftp(host) }
+    if proto == "http-basic" { cmd_http_basic(host) }
+    if proto == "http-form" {
+        let uf = __args__[2]
+        let pf = __args__[3]
+        let fs = __args__[4]
+        cmd_http_form(host, uf, pf, fs)
+    }
+    log.success("Brute force complete!")
 }
 
 fn main() {
     let proto = __args__[0]
     let host  = __args__[1]
-    let arg3  = __args__[2]
-    let arg4  = __args__[3]
-
     log.info("===== KOPPA Brute Force v2.0 =====")
-
-    if not proto or not host {
-        log.warn("Usage: koppa run koppa-bruteforce <ssh|ftp|smb|http> <host> [extra args]")
-        return
+    if proto and host {
+        run_brute(proto, host)
     }
-
-    if proto == "ssh"  { cmd_ssh(host) }
-    if proto == "ftp"  { cmd_ftp(host) }
-    if proto == "smb"  { cmd_smb(host) }
-    if proto == "http" { cmd_http(host, arg3, arg4, "Invalid") }
-
-    log.success("Brute force complete!")
+    if not proto or not host {
+        log.warn("Usage: koppa run koppa-bruteforce <ftp|http-basic|http-form> <host> [extra]")
+    }
 }

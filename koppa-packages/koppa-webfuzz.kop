@@ -1,28 +1,28 @@
-# koppa-webfuzz v2.0 — Web directory and parameter fuzzer
-# Usage: koppa run koppa-webfuzz <url> [dir|param|vhost]
+# koppa-webfuzz v2.0 — Web fuzzer
+# Usage: koppa run koppa-webfuzz <url> [dir|param <name>|vhost <domain>]
 
-import http, fuzz, parse, log, report
+import http, fuzz, encode, log, report
 
 let WORDLIST = ["admin", "login", "api", "api/v1", "api/v2", "dashboard",
-                "config", "backup", "test", "dev", "staging", "upload",
-                "files", "static", "assets", "js", "css", "images",
-                "robots.txt", ".env", "phpinfo.php", "wp-admin", "wp-login.php",
-                "console", "actuator", "metrics", "health", "graphql", "swagger"]
+                "config", "backup", "test", "dev", "upload", "files",
+                "robots.txt", ".env", "phpinfo.php", "wp-admin",
+                "console", "actuator", "health", "graphql", "swagger"]
 
 fn cmd_dir(base_url) {
     log.info("===== Dir Fuzz: {base_url} =====")
     let findings = []
     let found    = 0
     for word in WORDLIST {
-        let url  = "{base_url}/{word}"
-        let resp = http.get(url)
-        if resp.status != 404 and resp.status != 0 {
-            log.success("[{resp.status}] {url}  ({resp.body.len} bytes)")
-            findings.push(report.finding("{url}", "Info", "Status: {resp.status}"))
+        let url    = "{base_url}/{word}"
+        let resp   = http.get(url)
+        let status = resp.status
+        let body   = resp.body
+        if status != 404 and status != 0 {
+            log.success("[{status}] {url}  ({body.len}b)")
+            findings.push(report.finding(url, "Info", "Status: {status}"))
             found = found + 1
         }
     }
-    log.info("")
     log.info("Found {found} paths")
     return findings
 }
@@ -30,50 +30,35 @@ fn cmd_dir(base_url) {
 fn cmd_param(url, param) {
     log.info("===== Param Fuzz: {url} [{param}] =====")
     let payloads = ["'", "\"", "<script>", "1 OR 1=1", "../etc/passwd",
-                    "%00", "null", "undefined", "true", "false", "[]", "{}"]
+                    "%00", "null", "undefined", "true", "false"]
     for pay in payloads {
-        let resp = http.get("{url}?{param}={pay}")
-        if resp.status == 200 and resp.body.len > 0 {
-            log.info("[{resp.status}] {param}={pay}  -> {resp.body.len}b")
+        let resp   = http.get("{url}?{param}={pay}")
+        let status = resp.status
+        let body   = resp.body
+        if status == 200 and body.len > 0 {
+            log.info("[{status}] {param}={pay}  -> {body.len}b")
         }
     }
 }
 
-fn cmd_vhost(ip, base_domain) {
-    log.info("===== VHost Fuzz: {ip} (base: {base_domain}) =====")
-    let subdomains = ["admin", "dev", "staging", "api", "test", "internal",
-                      "portal", "dashboard", "vpn", "mail", "ftp", "beta"]
-    for sub in subdomains {
-        let vhost = "{sub}.{base_domain}"
-        let resp  = http.get_with_host("http://{ip}", vhost)
-        if resp.status != 404 and resp.status != 0 {
-            log.success("[+] VHost: {vhost}  [{resp.status}]  ({resp.body.len}b)")
-        }
+fn run_webfuzz(url, mode) {
+    if mode == "dir" or not mode { cmd_dir(url) }
+    if mode == "param" {
+        let param = __args__[2]
+        if param { cmd_param(url, param) }
+        if not param { log.warn("Specify param name") }
     }
+    log.success("Fuzz complete!")
 }
 
 fn main() {
     let url  = __args__[0]
     let mode = __args__[1]
-
-    if not url {
-        log.warn("Usage: koppa run koppa-webfuzz <url> [dir|param <name>|vhost <domain>]")
-        return
-    }
-
     log.info("===== KOPPA Web Fuzzer v2.0 =====")
-
-    if not mode or mode == "dir" { cmd_dir(url) }
-    if mode == "param" {
-        let param = __args__[2]
-        if not param { log.warn("Specify param name"); return }
-        cmd_param(url, param)
+    if url {
+        run_webfuzz(url, mode)
     }
-    if mode == "vhost" {
-        let domain = __args__[2]
-        if not domain { log.warn("Specify base domain"); return }
-        cmd_vhost(url, domain)
+    if not url {
+        log.warn("Usage: koppa run koppa-webfuzz <url> [dir|param <name>]")
     }
-
-    log.success("Fuzz complete!")
 }

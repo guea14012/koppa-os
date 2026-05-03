@@ -1,11 +1,11 @@
-# koppa-network-map v1.0 — Network discovery and mapping
+# koppa-network-map v1.0 â€” Network discovery and mapping
 # Usage: koppa run koppa-network-map <cidr> [discover|services|full]
 
 import scan, net, recon, dns, log, report, sys
 
 fn cmd_discover(cidr) {
     log.info("===== Host Discovery: {cidr} =====")
-    let out = sys.exec("nmap -sn {cidr} 2>/dev/null")
+    let out = os.shell("nmap -sn {cidr} 2>/dev/null")
     let hosts = []
     for line in out.split("\n") {
         if line.contains("Nmap scan report for") {
@@ -60,3 +60,4 @@ fn main() {
     if mode == "full"     { cmd_full(cidr) }
     log.success("Network map complete!")
 }
+
