@@ -12,12 +12,9 @@ permissions:
   id-token: write
 
 jobs:
-  # ── Build ISO (runs inside Debian Bookworm container) ────────────────────────
+  # ── Build ISO ────────────────────────────────────────────────────────────────
   build:
     runs-on: ubuntu-22.04
-    container:
-      image: debian:bookworm
-      options: --privileged
     timeout-minutes: 180
 
     steps:
@@ -26,15 +23,23 @@ jobs:
 
       - name: Install live-build & dependencies
         run: |
-          apt-get update -qq
-          apt-get install -y \
+          sudo apt-get update -qq
+          sudo apt-get install -y \
             live-build debootstrap xorriso squashfs-tools \
             isolinux syslinux-common \
             grub-pc-bin grub-efi-amd64-bin \
             mtools dosfstools \
             python3-pil python3-pip \
-            rsync curl wget git ca-certificates \
-            procps
+            rsync curl wget git ca-certificates
+
+      - name: Debug — verify live-build version & environment
+        run: |
+          echo "=== OS ==="
+          cat /etc/os-release | grep -E "^(NAME|VERSION)"
+          echo "=== live-build version ==="
+          lb --version || dpkg -l live-build | tail -1
+          echo "=== debootstrap version ==="
+          debootstrap --version
 
       - name: Set permissions
         run: |
@@ -49,11 +54,43 @@ jobs:
             chmod +x config/includes.chroot/usr/bin/koppa
           fi
 
-      - name: Configure live-build
-        run: bash auto/config
+      - name: Configure live-build (explicit Debian mirrors)
+        run: |
+          sudo lb config \
+            --distribution bookworm \
+            --mirror-bootstrap          "http://deb.debian.org/debian" \
+            --mirror-chroot             "http://deb.debian.org/debian" \
+            --mirror-binary             "http://deb.debian.org/debian" \
+            --mirror-chroot-security    "http://security.debian.org/debian-security" \
+            --mirror-binary-security    "http://security.debian.org/debian-security" \
+            --archive-areas             "main contrib non-free non-free-firmware" \
+            --apt-options               "--yes -oAcquire::Check-Valid-Until=false" \
+            --apt-recommends            false \
+            --binary-image              iso-hybrid \
+            --bootappend-live           "boot=live components quiet splash net.ifnames=0 hostname=koppa-os username=root" \
+            --debian-installer          none \
+            --initsystem                systemd \
+            --iso-application           "KOPPA-OS" \
+            --iso-preparer              "KOPPA-OS Project" \
+            --iso-publisher             "KOPPA-OS" \
+            --iso-volume                "KOPPA-OS 1.0" \
+            --architectures             amd64 \
+            --linux-packages            "linux-image linux-headers" \
+            --linux-flavours            amd64 \
+            --memtest                   none \
+            --win32-loader              false \
+            --firmware-binary           true \
+            --firmware-chroot           true
+
+      - name: Debug — show generated mirror config
+        run: |
+          echo "=== config/bootstrap ==="
+          cat config/bootstrap 2>/dev/null || echo "(not found)"
+          echo "=== config/common ==="
+          cat config/common 2>/dev/null | grep -i mirror || echo "(not found)"
 
       - name: Build ISO
-        run: lb build 2>&1 | tee build.log
+        run: sudo lb build 2>&1 | tee build.log
         env:
           DEBIAN_FRONTEND: noninteractive
 
@@ -68,7 +105,7 @@ jobs:
           fi
           TAG="${GITHUB_REF_NAME:-dev}"
           NAME="koppa-os-${TAG}-amd64.iso"
-          mv "$ISO" "$NAME"
+          sudo mv "$ISO" "$NAME"
           SHA=$(sha256sum "$NAME" | awk '{print $1}')
           echo "$SHA  $NAME" > "${NAME}.sha256"
           SIZE=$(du -sh "$NAME" | cut -f1)
@@ -127,25 +164,12 @@ jobs:
             C2/Pivot:   koppa-c2 · socat · proxychains4 · tor · openvpn
             ```
 
-            ### KOPPA Packages
-            ```
-            koppa-portscan · koppa-webfuzz · koppa-jwt-attack · koppa-hashcrack
-            koppa-recon · koppa-exploit · koppa-evasion · koppa-bruteforce
-            koppa-c2-client · koppa-sqli · koppa-xss · koppa-lfi · koppa-ssrf
-            koppa-privesc · koppa-ad · koppa-network-map · koppa-api
-            koppa-stealth · koppa-phish
-            ```
-
             ### Quick Start
             ```bash
-            # Flash to USB
             dd if=${{ steps.pkg.outputs.name }} of=/dev/sdX bs=4M status=progress
-
             # Boot → login: root / koppa
-
-            koppa repl                          # Interactive KOPPA shell
-            koppa pkg install koppa-exploit     # Install security module
-            koppa-c2 0.0.0.0 8443               # Start C2 server
+            koppa repl
+            koppa-c2 0.0.0.0 8443
             ```
 
             ### SHA256
