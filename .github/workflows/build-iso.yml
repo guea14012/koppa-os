@@ -12,9 +12,12 @@ permissions:
   id-token: write
 
 jobs:
-  # ── Build ISO ────────────────────────────────────────────────────────────────
+  # ── Build ISO (runs inside Debian Bookworm container) ────────────────────────
   build:
     runs-on: ubuntu-22.04
+    container:
+      image: debian:bookworm
+      options: --privileged
     timeout-minutes: 180
 
     steps:
@@ -23,14 +26,15 @@ jobs:
 
       - name: Install live-build & dependencies
         run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y \
+          apt-get update -qq
+          apt-get install -y \
             live-build debootstrap xorriso squashfs-tools \
-            isolinux syslinux-common syslinux-efi \
-            grub-pc-bin grub-efi-amd64-bin grub-efi-amd64-signed \
-            shim-signed mtools dosfstools \
+            isolinux syslinux-common \
+            grub-pc-bin grub-efi-amd64-bin \
+            mtools dosfstools \
             python3-pil python3-pip \
-            rsync curl wget git
+            rsync curl wget git ca-certificates \
+            procps
 
       - name: Set permissions
         run: |
@@ -46,10 +50,10 @@ jobs:
           fi
 
       - name: Configure live-build
-        run: sudo bash auto/config
+        run: bash auto/config
 
       - name: Build ISO
-        run: sudo lb build 2>&1 | tee build.log
+        run: lb build 2>&1 | tee build.log
         env:
           DEBIAN_FRONTEND: noninteractive
 
@@ -57,7 +61,11 @@ jobs:
         id: pkg
         run: |
           ISO=$(ls *.iso 2>/dev/null | head -1)
-          [ -z "$ISO" ] && { echo "No ISO — build failed"; tail -200 build.log; exit 1; }
+          if [ -z "$ISO" ]; then
+            echo "No ISO — build failed"
+            tail -200 build.log
+            exit 1
+          fi
           TAG="${GITHUB_REF_NAME:-dev}"
           NAME="koppa-os-${TAG}-amd64.iso"
           mv "$ISO" "$NAME"
@@ -67,7 +75,8 @@ jobs:
           echo "name=$NAME"   >> "$GITHUB_OUTPUT"
           echo "sha256=$SHA"  >> "$GITHUB_OUTPUT"
           echo "size=$SIZE"   >> "$GITHUB_OUTPUT"
-          echo "Built: $NAME ($SIZE) SHA256=$SHA"
+          echo "Built: $NAME ($SIZE)"
+          echo "SHA256: $SHA"
 
       - name: Upload ISO artifact
         uses: actions/upload-artifact@v4
@@ -144,7 +153,7 @@ jobs:
             ${{ steps.pkg.outputs.sha256 }}
             ```
 
-            > **AUTHORIZED USE ONLY** — for penetration testing, CTF competitions, and security research on systems you own or have explicit written permission to test.
+            > **AUTHORIZED USE ONLY** — for pentesting, CTFs, and security research on systems you own or have explicit written permission to test.
           draft: false
           prerelease: false
         env:
