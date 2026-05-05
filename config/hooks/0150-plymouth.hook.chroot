@@ -1,41 +1,62 @@
 #!/bin/bash
 # KOPPA-OS: Plymouth boot splash setup
-set -e
 
 echo "[KOPPA-OS] Setting up Plymouth boot splash..."
 
-# ── Ensure theme directory is in place ───────────────────────────────────────
 THEME_DIR="/usr/share/plymouth/themes/koppa-os"
-mkdir -p "$THEME_DIR"
 
-# Copy from boot/grub staging area if needed (live-build places includes.chroot files)
-# Theme files should already be at $THEME_DIR via includes.chroot
-
-# ── Set KOPPA-OS as default Plymouth theme ────────────────────────────────────
-if command -v update-alternatives &>/dev/null; then
-    if [ -f "$THEME_DIR/koppa-os.plymouth" ]; then
-        update-alternatives --install /usr/share/plymouth/themes/default.plymouth \
-            default.plymouth "$THEME_DIR/koppa-os.plymouth" 200 2>/dev/null || true
-    fi
+# ── Verify theme files are in place ──────────────────────────────────────────
+if [ ! -f "$THEME_DIR/koppa-os.plymouth" ]; then
+    echo "[KOPPA-OS] WARNING: Plymouth theme files not found at $THEME_DIR"
+    ls /usr/share/plymouth/themes/ 2>/dev/null || true
 fi
 
-# ── Configure Plymouth directly ───────────────────────────────────────────────
-if command -v plymouth-set-default-theme &>/dev/null; then
-    plymouth-set-default-theme koppa-os 2>/dev/null || true
-fi
+# ── Enable framebuffer in initramfs (required for Plymouth) ──────────────────
+mkdir -p /etc/initramfs-tools/conf.d
+cat > /etc/initramfs-tools/conf.d/koppa-plymouth.conf << 'EOF'
+FRAMEBUFFER=y
+EOF
 
-# ── Write plymouthd config ────────────────────────────────────────────────────
+# ── Add drm and framebuffer modules to initramfs ─────────────────────────────
+mkdir -p /etc/initramfs-tools/modules.d
+cat >> /etc/initramfs-tools/modules.d/koppa-drm.conf << 'EOF' 2>/dev/null || true
+drm
+drm_kms_helper
+EOF
+
+# ── Write plymouthd.conf ──────────────────────────────────────────────────────
 mkdir -p /etc/plymouth
-cat > /etc/plymouth/plymouthd.conf << 'CONF'
+cat > /etc/plymouth/plymouthd.conf << 'EOF'
 [Daemon]
 Theme=koppa-os
 ShowDelay=0
 DeviceTimeout=8
-CONF
+EOF
 
-# ── Rebuild initramfs with Plymouth ───────────────────────────────────────────
+# ── Register theme via update-alternatives ────────────────────────────────────
+if [ -f "$THEME_DIR/koppa-os.plymouth" ]; then
+    update-alternatives --install \
+        /usr/share/plymouth/themes/default.plymouth \
+        default.plymouth \
+        "$THEME_DIR/koppa-os.plymouth" \
+        200 2>/dev/null || true
+fi
+
+# ── Set default theme AND rebuild initrd in one step ─────────────────────────
+if command -v plymouth-set-default-theme &>/dev/null; then
+    if [ -f "$THEME_DIR/koppa-os.plymouth" ]; then
+        plymouth-set-default-theme --rebuild-initrd koppa-os 2>/dev/null || \
+        plymouth-set-default-theme koppa-os 2>/dev/null || true
+    fi
+fi
+
+# ── Rebuild ALL initramfs versions as fallback ────────────────────────────────
 if command -v update-initramfs &>/dev/null; then
+    update-initramfs -u -k all 2>/dev/null || \
     update-initramfs -u 2>/dev/null || true
 fi
 
+# ── Verify theme is active ────────────────────────────────────────────────────
+ACTIVE=$(plymouth-set-default-theme 2>/dev/null || cat /etc/plymouth/plymouthd.conf | grep Theme || echo "unknown")
+echo "[KOPPA-OS] Plymouth active theme: $ACTIVE"
 echo "[KOPPA-OS] Plymouth boot splash configured."
