@@ -1,12 +1,13 @@
 #!/bin/bash
 # KOPPA-OS: Desktop theming hook — GTK theme, XFCE4, wallpaper
-set -e
+# NOTE: set -e intentionally omitted; non-critical steps use || true
 
 echo "[KOPPA-OS] Applying KOPPA theme..."
 
-# ── GTK Dark Red Theme ────────────────────────────────────────────────────────
+# ── GTK 3 Dark Red Theme ──────────────────────────────────────────────────────
 mkdir -p /usr/share/themes/KOPPA-Dark/gtk-3.0
-cat > /usr/share/themes/KOPPA-Dark/gtk-3.0/gtk.css << 'GTK'
+
+cat > /usr/share/themes/KOPPA-Dark/gtk-3.0/gtk.css << 'GTK3'
 * { color: #e0d0d0; background-color: #0a0000; }
 window, .background { background-color: #0a0000; }
 headerbar, .titlebar { background-color: #050000; border-bottom: 1px solid #3a0000; }
@@ -17,8 +18,57 @@ entry:focus { border-color: #cc1111; }
 .sidebar { background: #050000; }
 scrollbar { background: #050000; }
 scrollbar slider { background: #3a0000; }
-GTK
+GTK3
 
+# ── GTK 2 Dark Red Theme (for full compatibility) ─────────────────────────────
+mkdir -p /usr/share/themes/KOPPA-Dark/gtk-2.0
+
+cat > /usr/share/themes/KOPPA-Dark/gtk-2.0/gtkrc << 'GTK2'
+gtk-color-scheme = "base_color:#0a0000\nbg_color:#0a0000\nfg_color:#e0d0d0\ntext_color:#e0d0d0\nselected_bg_color:#3a0000\nselected_fg_color:#e0d0d0\ntooltip_bg_color:#050000\ntooltip_fg_color:#e0d0d0"
+
+style "default" {
+    GtkWidget::interior-focus = 6
+    fg[NORMAL]        = @fg_color
+    fg[PRELIGHT]      = @fg_color
+    fg[SELECTED]      = @selected_fg_color
+    fg[INSENSITIVE]   = "#5a4a4a"
+    fg[ACTIVE]        = @fg_color
+
+    bg[NORMAL]        = @bg_color
+    bg[PRELIGHT]      = "#2a0000"
+    bg[SELECTED]      = @selected_bg_color
+    bg[INSENSITIVE]   = "#110000"
+    bg[ACTIVE]        = "#150000"
+
+    base[NORMAL]      = @base_color
+    base[PRELIGHT]    = @base_color
+    base[SELECTED]    = @selected_bg_color
+    base[INSENSITIVE] = "#110000"
+    base[ACTIVE]      = @selected_bg_color
+
+    text[NORMAL]      = @text_color
+    text[PRELIGHT]    = @text_color
+    text[SELECTED]    = @selected_fg_color
+    text[INSENSITIVE] = "#5a4a4a"
+    text[ACTIVE]      = @selected_fg_color
+}
+class "GtkWidget" style "default"
+
+style "button" inherits "default" {
+    bg[NORMAL]   = "#1a0000"
+    bg[PRELIGHT] = "#2a0000"
+    bg[ACTIVE]   = "#3a0000"
+}
+class "GtkButton" style "button"
+
+style "entry" inherits "default" {
+    base[NORMAL] = "#0d0000"
+    base[ACTIVE] = "#0d0000"
+}
+class "GtkEntry" style "entry"
+GTK2
+
+# ── Theme index ───────────────────────────────────────────────────────────────
 cat > /usr/share/themes/KOPPA-Dark/index.theme << 'IDX'
 [Desktop Entry]
 Type=X-GNOME-Metatheme
@@ -32,29 +82,30 @@ MetacityTheme=KOPPA-Dark
 IconTheme=Adwaita
 IDX
 
-# ── XFCE4 defaults ────────────────────────────────────────────────────────────
+# ── XFCE4 window manager ──────────────────────────────────────────────────────
 mkdir -p /etc/skel/.config/xfce4/xfconf/xfce-perchannel-xml
 
 cat > /etc/skel/.config/xfce4/xfconf/xfce-perchannel-xml/xfwm4.xml << 'XFWM'
 <?xml version="1.0" encoding="UTF-8"?>
 <channel name="xfwm4" version="1.0">
   <property name="general" type="empty">
-    <property name="theme" type="string" value="KOPPA-Dark"/>
-    <property name="title_font" type="string" value="Monospace Bold 9"/>
+    <property name="theme"        type="string" value="KOPPA-Dark"/>
+    <property name="title_font"   type="string" value="Monospace Bold 9"/>
     <property name="button_layout" type="string" value="CHM|"/>
   </property>
 </channel>
 XFWM
 
+# ── XFCE4 GTK settings ────────────────────────────────────────────────────────
 cat > /etc/skel/.config/xfce4/xfconf/xfce-perchannel-xml/xsettings.xml << 'XST'
 <?xml version="1.0" encoding="UTF-8"?>
 <channel name="xsettings" version="1.0">
   <property name="Net" type="empty">
-    <property name="ThemeName" type="string" value="KOPPA-Dark"/>
+    <property name="ThemeName"     type="string" value="KOPPA-Dark"/>
     <property name="IconThemeName" type="string" value="Adwaita"/>
   </property>
   <property name="Gtk" type="empty">
-    <property name="FontName" type="string" value="Monospace 10"/>
+    <property name="FontName"          type="string" value="Monospace 10"/>
     <property name="MonospaceFontName" type="string" value="Monospace 10"/>
   </property>
 </channel>
@@ -73,26 +124,29 @@ TabActivityColor=#cc1111
 MiscHighlightUrls=TRUE
 TERM
 
-# ── Desktop wallpaper from repo ───────────────────────────────────────────────
+# ── Desktop wallpaper — use xfconf-query at first login instead of hardcoded
+#    monitor name, because monitorVirtual1 is display-driver-dependent.
+#    We drop the XML approach and instead ship a login script snippet.
+# ─────────────────────────────────────────────────────────────────────────────
 if [ -f /usr/share/backgrounds/koppa-os-wallpaper.png ]; then
-  mkdir -p /etc/skel/.config/xfce4/xfconf/xfce-perchannel-xml
-  cat > /etc/skel/.config/xfce4/xfconf/xfce-perchannel-xml/xfce4-desktop.xml << 'DESK'
-<?xml version="1.0" encoding="UTF-8"?>
-<channel name="xfce4-desktop" version="1.0">
-  <property name="backdrop" type="empty">
-    <property name="screen0" type="empty">
-      <property name="monitorVirtual1" type="empty">
-        <property name="workspace0" type="empty">
-          <property name="last-image" type="string" value="/usr/share/backgrounds/koppa-os-wallpaper.png"/>
-          <property name="image-style" type="int" value="5"/>
-          <property name="color-style" type="int" value="0"/>
-          <property name="rgba1" type="array"><value type="double" value="0.039"/><value type="double" value="0"/><value type="double" value="0"/><value type="double" value="1"/></property>
-        </property>
-      </property>
-    </property>
-  </property>
-</channel>
-DESK
+    mkdir -p /etc/skel/.config/autostart
+    cat > /etc/skel/.config/autostart/koppa-wallpaper.desktop << 'WPAUTO'
+[Desktop Entry]
+Type=Application
+Name=KOPPA Wallpaper
+Comment=Set KOPPA-OS wallpaper on first login
+Exec=/bin/bash -c 'sleep 2; for mon in $(xfconf-query -c xfce4-desktop -l 2>/dev/null | grep -oP "screen\d+/monitor[^/]+" | sort -u); do xfconf-query -c xfce4-desktop -p /backdrop/${mon}/workspace0/last-image -s /usr/share/backgrounds/koppa-os-wallpaper.png --create -t string 2>/dev/null || true; xfconf-query -c xfce4-desktop -p /backdrop/${mon}/workspace0/image-style -s 5 --create -t int 2>/dev/null || true; done'
+Hidden=false
+NoDisplay=false
+X-GNOME-Autostart-enabled=true
+WPAUTO
 fi
+
+# ── Apply theme for root as well ─────────────────────────────────────────────
+mkdir -p /root/.config/xfce4/xfconf/xfce-perchannel-xml || true
+cp /etc/skel/.config/xfce4/xfconf/xfce-perchannel-xml/xfwm4.xml \
+   /root/.config/xfce4/xfconf/xfce-perchannel-xml/xfwm4.xml 2>/dev/null || true
+cp /etc/skel/.config/xfce4/xfconf/xfce-perchannel-xml/xsettings.xml \
+   /root/.config/xfce4/xfconf/xfce-perchannel-xml/xsettings.xml 2>/dev/null || true
 
 echo "[KOPPA-OS] Theme applied."

@@ -1,11 +1,10 @@
 #!/bin/bash
 # KOPPA-OS: Desktop environment — .desktop files, panel, prompt, neofetch
-set -e
+# NOTE: set -e intentionally omitted; non-critical steps use || true
 
 echo "[KOPPA-OS] Setting up desktop environment..."
 
 APP_DIR="/usr/share/applications"
-ICON="/usr/share/icons/koppa-os/koppa-os.png"
 TERMINAL="xfce4-terminal"
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -360,7 +359,7 @@ Keywords=files;manager;
 EOF
 
 # ── Fix permissions ───────────────────────────────────────────────────────────
-chmod 644 "$APP_DIR"/koppa-*.desktop
+chmod 644 "$APP_DIR"/koppa-*.desktop || true
 update-desktop-database "$APP_DIR" 2>/dev/null || true
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -371,7 +370,7 @@ mkdir -p "$SKEL_DESKTOP"
 
 for f in koppa-repl koppa-c2 koppa-metasploit koppa-nmap koppa-wireshark koppa-terminal; do
     cp "$APP_DIR/$f.desktop" "$SKEL_DESKTOP/$f.desktop" 2>/dev/null || true
-    chmod +x "$SKEL_DESKTOP/$f.desktop"
+    chmod +x "$SKEL_DESKTOP/$f.desktop" || true
 done
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -380,6 +379,10 @@ done
 PANEL_DIR="/etc/skel/.config/xfce4/xfconf/xfce-perchannel-xml"
 mkdir -p "$PANEL_DIR"
 
+# background-style 1 = solid color (XFCE4 4.18 compatible)
+# background-color uses a plain #RRGGBB string; alpha is set separately via
+# background-alpha (0-255) to avoid RGBA hex parsing issues in 4.18.
+# Plugin type "whiskermenu" is correct — provided by xfce4-whiskermenu-plugin.
 cat > "$PANEL_DIR/xfce4-panel.xml" << 'PANELEOF'
 <?xml version="1.0" encoding="UTF-8"?>
 <channel name="xfce4-panel" version="1.0">
@@ -391,14 +394,15 @@ cat > "$PANEL_DIR/xfce4-panel.xml" << 'PANELEOF'
 
   <!-- Top panel -->
   <property name="panel-1" type="empty">
-    <property name="position"       type="string" value="p=6;x=0;y=0"/>
-    <property name="length"         type="uint"   value="100"/>
-    <property name="position-locked" type="bool"  value="true"/>
-    <property name="size"           type="uint"   value="30"/>
-    <property name="background-style" type="int"  value="1"/>
-    <property name="background-color" type="string" value="#05000085"/>
-    <property name="enter-opacity"  type="uint"   value="100"/>
-    <property name="leave-opacity"  type="uint"   value="95"/>
+    <property name="position"         type="string" value="p=6;x=0;y=0"/>
+    <property name="length"           type="uint"   value="100"/>
+    <property name="position-locked"  type="bool"   value="true"/>
+    <property name="size"             type="uint"   value="30"/>
+    <property name="background-style" type="int"    value="1"/>
+    <property name="background-color" type="string" value="#050000"/>
+    <property name="background-alpha" type="uint"   value="133"/>
+    <property name="enter-opacity"    type="uint"   value="100"/>
+    <property name="leave-opacity"    type="uint"   value="95"/>
     <property name="plugin-ids" type="array">
       <value type="int" value="1"/>
       <value type="int" value="2"/>
@@ -408,20 +412,20 @@ cat > "$PANEL_DIR/xfce4-panel.xml" << 'PANELEOF'
       <value type="int" value="6"/>
       <value type="int" value="7"/>
       <value type="int" value="8"/>
-      <value type="int" value="9"/>
     </property>
   </property>
 
   <!-- Bottom dock -->
   <property name="panel-2" type="empty">
-    <property name="position"       type="string" value="p=10;x=0;y=0"/>
-    <property name="length"         type="uint"   value="60"/>
-    <property name="position-locked" type="bool"  value="true"/>
-    <property name="size"           type="uint"   value="44"/>
-    <property name="background-style" type="int"  value="1"/>
-    <property name="background-color" type="string" value="#05000099"/>
-    <property name="enter-opacity"  type="uint"   value="100"/>
-    <property name="leave-opacity"  type="uint"   value="85"/>
+    <property name="position"         type="string" value="p=10;x=0;y=0"/>
+    <property name="length"           type="uint"   value="60"/>
+    <property name="position-locked"  type="bool"   value="true"/>
+    <property name="size"             type="uint"   value="44"/>
+    <property name="background-style" type="int"    value="1"/>
+    <property name="background-color" type="string" value="#050000"/>
+    <property name="background-alpha" type="uint"   value="153"/>
+    <property name="enter-opacity"    type="uint"   value="100"/>
+    <property name="leave-opacity"    type="uint"   value="85"/>
     <property name="plugin-ids" type="array">
       <value type="int" value="11"/>
       <value type="int" value="12"/>
@@ -435,38 +439,39 @@ cat > "$PANEL_DIR/xfce4-panel.xml" << 'PANELEOF'
   </property>
 
   <!-- Plugin definitions -->
-  <!-- 1: whisker menu -->
+
+  <!-- 1: whisker menu (xfce4-whiskermenu-plugin) -->
   <property name="plugin-1" type="string" value="whiskermenu">
-    <property name="show-button-title" type="bool" value="true"/>
+    <property name="show-button-title" type="bool"   value="true"/>
     <property name="button-title"      type="string" value="KOPPA-OS"/>
     <property name="button-icon"       type="string" value="/usr/share/icons/koppa-os/koppa-os.png"/>
   </property>
 
   <!-- 2: separator -->
   <property name="plugin-2" type="string" value="separator">
-    <property name="expand"    type="bool" value="false"/>
-    <property name="style"     type="int"  value="0"/>
+    <property name="expand" type="bool" value="false"/>
+    <property name="style"  type="int"  value="0"/>
   </property>
 
   <!-- 3: tasklist -->
   <property name="plugin-3" type="string" value="tasklist">
-    <property name="show-labels"    type="bool" value="true"/>
-    <property name="show-wireframes" type="bool" value="false"/>
-    <property name="grouping"       type="uint" value="1"/>
-    <property name="include-all-workspaces" type="bool" value="false"/>
-    <property name="flat-buttons"   type="bool" value="true"/>
+    <property name="show-labels"             type="bool" value="true"/>
+    <property name="show-wireframes"         type="bool" value="false"/>
+    <property name="grouping"                type="uint" value="1"/>
+    <property name="include-all-workspaces"  type="bool" value="false"/>
+    <property name="flat-buttons"            type="bool" value="true"/>
   </property>
 
-  <!-- 4: spacer -->
+  <!-- 4: expanding spacer -->
   <property name="plugin-4" type="string" value="separator">
     <property name="expand" type="bool" value="true"/>
     <property name="style"  type="int"  value="0"/>
   </property>
 
-  <!-- 5: systray -->
+  <!-- 5: systray / notification area -->
   <property name="plugin-5" type="string" value="systray">
-    <property name="size-max"         type="uint" value="22"/>
-    <property name="square-icons"     type="bool" value="false"/>
+    <property name="size-max"     type="uint" value="22"/>
+    <property name="square-icons" type="bool" value="false"/>
   </property>
 
   <!-- 6: separator -->
@@ -475,17 +480,16 @@ cat > "$PANEL_DIR/xfce4-panel.xml" << 'PANELEOF'
     <property name="style"  type="int"  value="0"/>
   </property>
 
-  <!-- 7: clock -->
+  <!-- 7: digital clock -->
   <property name="plugin-7" type="string" value="clock">
-    <property name="mode"              type="uint" value="2"/>
-    <property name="digital-format"   type="string" value="%H:%M:%S"/>
-    <property name="digital-font"     type="string" value="Monospace Bold 10"/>
-    <property name="show-inactive-buttons" type="bool" value="true"/>
+    <property name="mode"           type="uint"   value="2"/>
+    <property name="digital-format" type="string" value="%H:%M:%S"/>
+    <property name="digital-font"   type="string" value="Monospace Bold 10"/>
   </property>
 
-  <!-- 8: action buttons -->
+  <!-- 8: action buttons (logout/lock/shutdown) -->
   <property name="plugin-8" type="string" value="actions">
-    <property name="items"  type="array">
+    <property name="items" type="array">
       <value type="string" value="-logout"/>
       <value type="string" value="-lock-screen"/>
       <value type="string" value="-shutdown"/>
@@ -493,7 +497,8 @@ cat > "$PANEL_DIR/xfce4-panel.xml" << 'PANELEOF'
     <property name="appearance" type="int" value="0"/>
   </property>
 
-  <!-- Bottom dock plugins: launchers -->
+  <!-- Bottom dock — launcher plugins -->
+
   <!-- 11: KOPPA REPL -->
   <property name="plugin-11" type="string" value="launcher">
     <property name="items" type="array">
@@ -529,31 +534,32 @@ cat > "$PANEL_DIR/xfce4-panel.xml" << 'PANELEOF'
     </property>
   </property>
 
-  <!-- 16: Burpsuite/Web -->
+  <!-- 16: ffuf (web fuzzing) -->
   <property name="plugin-16" type="string" value="launcher">
     <property name="items" type="array">
       <value type="string" value="koppa-ffuf.desktop"/>
     </property>
   </property>
 
-  <!-- 17: Files -->
+  <!-- 17: File manager -->
   <property name="plugin-17" type="string" value="launcher">
     <property name="items" type="array">
       <value type="string" value="koppa-files.desktop"/>
     </property>
   </property>
 
-  <!-- 18: Firefox -->
+  <!-- 18: Firefox ESR -->
   <property name="plugin-18" type="string" value="launcher">
     <property name="items" type="array">
       <value type="string" value="firefox-esr.desktop"/>
     </property>
   </property>
+
 </channel>
 PANELEOF
 
 # ══════════════════════════════════════════════════════════════════════════════
-# Whisker Menu Categories
+# Whisker Menu Categories config
 # ══════════════════════════════════════════════════════════════════════════════
 WHISKER_CFG="/etc/skel/.config/xfce4/panel/whiskermenu-1.rc"
 mkdir -p "$(dirname "$WHISKER_CFG")"
@@ -596,28 +602,45 @@ command=firefox-esr "https://www.google.com/search?q=%s"
 WHISKEREOF
 
 # ══════════════════════════════════════════════════════════════════════════════
-# Neofetch configuration
+# Neofetch — ASCII art file + config
 # ══════════════════════════════════════════════════════════════════════════════
-NEOFETCH_CFG="/etc/skel/.config/neofetch/config.conf"
-mkdir -p "$(dirname "$NEOFETCH_CFG")"
+NEOFETCH_DIR="/etc/skel/.config/neofetch"
+NEOFETCH_CFG="$NEOFETCH_DIR/config.conf"
+NEOFETCH_ASCII="$NEOFETCH_DIR/koppa-ascii.txt"
+mkdir -p "$NEOFETCH_DIR"
+
+# Write the ASCII art as a plain file (neofetch reads it via image_source)
+cat > "$NEOFETCH_ASCII" << 'ASCIIEOF'
+${c1}  KK  KK  OOOOOO  PPPPPP  PPPPPP   AAAA
+${c1}  KK KK  OO    OO PP   PP PP   PP AA  AA
+${c1}  KKKK   OO    OO PPPPPP  PPPPPP  AAAAAAAA
+${c1}  KK KK  OO    OO PP      PP      AA    AA
+${c1}  KK  KK  OOOOOO  PP      PP      AA    AA
+${c1}
+${c1}   OOOOOO   SSSSSS   REDTEAM OS  v1.0
+${c1}  OO    OO SS        Debian 12 Bookworm
+${c1}  OO    OO  SSSSS    KOPPA v3.0.1
+${c1}  OO    OO      SS   Offensive Security Platform
+${c1}   OOOOOO   SSSSSS
+ASCIIEOF
 
 cat > "$NEOFETCH_CFG" << 'NEOFETCHEOF'
 print_info() {
     prin ""
     info title
     info underline
-    info "OS"      distro
-    info "Kernel"  kernel
-    info "Uptime"  uptime
+    info "OS"       distro
+    info "Kernel"   kernel
+    info "Uptime"   uptime
     info "Packages" packages
-    info "Shell"   shell
+    info "Shell"    shell
     info "Terminal" term
-    info "CPU"     cpu
-    info "Memory"  memory
+    info "CPU"      cpu
+    info "Memory"   memory
     prin ""
-    info "KOPPA"   koppa_ver
+    info "KOPPA"    koppa_ver
     prin ""
-    prin "$(color 1)●$(color 1)● $(color 2)●$(color 2)● $(color 3)●$(color 3)● $(color 4)●$(color 4)● $(color 5)●$(color 5)● $(color 6)●$(color 6)●"
+    prin "$(color 1)  $(color 1)  $(color 2)  $(color 2)  $(color 3)  $(color 3)  $(color 4)  $(color 4)  $(color 5)  $(color 5)  $(color 6)  $(color 6)"
     prin ""
 }
 
@@ -653,28 +676,13 @@ block_width=3
 block_height=1
 
 colors=(1 7 7 7 7 7)
-bold="on"
 
+# Use our custom ASCII art file — image_source path to a plain text file
+# is the correct neofetch mechanism; custom_ascii key does NOT exist.
 image_backend="ascii"
-image_source="auto"
-ascii_distro="auto"
+image_source="/etc/skel/.config/neofetch/koppa-ascii.txt"
 ascii_colors=(1 7 7 1 7 1)
 ascii_bold="on"
-
-custom_ascii='
-\e[31m  ██╗  ██╗ ██████╗ ██████╗ ██████╗  █████╗       \e[0m
-\e[31m  ██║ ██╔╝██╔═══██╗██╔══██╗██╔══██╗██╔══██╗      \e[0m
-\e[31m  █████╔╝ ██║   ██║██████╔╝██████╔╝███████║█████╗\e[0m
-\e[31m  ██╔═██╗ ██║   ██║██╔═══╝ ██╔═══╝ ██╔══██║╚════╝\e[0m
-\e[31m  ██║  ██╗╚██████╔╝██║     ██║     ██║  ██║      \e[0m
-\e[31m  ╚═╝  ╚═╝ ╚═════╝ ╚═╝     ╚═╝     ╚═╝  ╚═╝      \e[0m
-\e[31m  ██████╗ ███████╗                                 \e[0m
-\e[31m ██╔═══██╗██╔════╝                                 \e[0m
-\e[31m ██║   ██║███████╗  REDTEAM OS  v1.0               \e[0m
-\e[31m ██║   ██║╚════██║  Debian 12 · KOPPA v3.0.1       \e[0m
-\e[31m ╚██████╔╝███████║  Offensive Security Platform    \e[0m
-\e[31m  ╚═════╝ ╚══════╝                                 \e[0m
-'
 
 stdout="off"
 NEOFETCHEOF
@@ -703,11 +711,11 @@ WHITE='\[\e[1;37m\]'
 DIM='\[\e[0;90m\]'
 RESET='\[\e[0m\]'
 
-# ── KOPPA Prompt ─────────────────────────────────────────────────────────────
+# ── KOPPA Prompt ──────────────────────────────────────────────────────────────
 # [koppa@hostname ~]$  in red
 PS1="${DIM}[${BRED}\u${DIM}@${RED}\h${DIM}]${RESET} ${WHITE}\w${RESET} ${BRED}\$${RESET} "
 
-# Root gets skull
+# Root gets a # sigil
 if [ "$(id -u)" = "0" ]; then
     PS1="${DIM}[${BRED}\u${DIM}@${RED}\h${DIM}]${RESET} ${WHITE}\w${RESET} ${BRED}#${RESET} "
 fi
@@ -735,7 +743,7 @@ alias wf='wfuzz'
 alias sq='sqlmap'
 alias hc='hashcat'
 
-# ── Auto-run neofetch on login terminal ──────────────────────────────────────
+# ── Auto-run neofetch on interactive login ────────────────────────────────────
 if command -v neofetch &>/dev/null; then
     if [ -n "$PS1" ] && [ -z "$NEOFETCH_DONE" ]; then
         export NEOFETCH_DONE=1
@@ -746,35 +754,41 @@ BASHRCEOF
 
 # ── Root also gets the same setup ────────────────────────────────────────────
 cp /etc/skel/.bashrc /root/.bashrc 2>/dev/null || true
-mkdir -p /root/.config/neofetch
-cp "$NEOFETCH_CFG" /root/.config/neofetch/config.conf 2>/dev/null || true
+mkdir -p /root/.config/neofetch || true
+cp "$NEOFETCH_CFG"   /root/.config/neofetch/config.conf 2>/dev/null || true
+cp "$NEOFETCH_ASCII" /root/.config/neofetch/koppa-ascii.txt 2>/dev/null || true
+
+# Update the image_source path for root (it uses ~/.config not /etc/skel)
+sed -i 's|/etc/skel/.config/neofetch/koppa-ascii.txt|/root/.config/neofetch/koppa-ascii.txt|' \
+    /root/.config/neofetch/config.conf 2>/dev/null || true
 
 # ══════════════════════════════════════════════════════════════════════════════
 # /etc/issue — pre-login banner (TTY)
 # ══════════════════════════════════════════════════════════════════════════════
 cat > /etc/issue << 'ISSUEEOF'
 
-  ██╗  ██╗ ██████╗ ██████╗ ██████╗  █████╗        ██████╗ ███████╗
-  ██║ ██╔╝██╔═══██╗██╔══██╗██╔══██╗██╔══██╗      ██╔═══██╗██╔════╝
-  █████╔╝ ██║   ██║██████╔╝██████╔╝███████║█████╗██║   ██║███████╗
-  ██╔═██╗ ██║   ██║██╔═══╝ ██╔═══╝ ██╔══██║╚════╝██║   ██║╚════██║
-  ██║  ██╗╚██████╔╝██║     ██║     ██║  ██║      ╚██████╔╝███████║
-  ╚═╝  ╚═╝ ╚═════╝ ╚═╝     ╚═╝     ╚═╝  ╚═╝       ╚═════╝ ╚══════╝
+  KK  KK  OOOOOO  PPPPPP  PPPPPP   AAAA         OOOOOO   SSSSSS
+  KK KK  OO    OO PP   PP PP   PP AA  AA        OO    OO SS
+  KKKK   OO    OO PPPPPP  PPPPPP  AAAAAAAA      OO    OO  SSSSS
+  KK KK  OO    OO PP      PP      AA    AA      OO    OO      SS
+  KK  KK  OOOOOO  PP      PP      AA    AA       OOOOOO   SSSSSS
 
-  KOPPA-OS v1.0  ·  Independent Redteam Platform  ·  Debian 12 Bookworm
+  KOPPA-OS v1.0  -  Independent Redteam Platform  -  Debian 12 Bookworm
   Login: root   Password: koppa
 
 ISSUEEOF
 
-cp /etc/issue /etc/issue.net
+cp /etc/issue /etc/issue.net || true
 
 # ══════════════════════════════════════════════════════════════════════════════
-# Whisker menu category icons workaround
+# Whisker menu category icons
 # ══════════════════════════════════════════════════════════════════════════════
 CATS_DIR="/usr/share/desktop-directories"
 mkdir -p "$CATS_DIR"
 
-for cat_name in "KOPPA" "NetworkRecon" "WebAttacks" "PasswordAttacks" "Exploitation" "Recon" "Wireless" "Forensics" "ReverseEngineering" "VulnScan" "ActiveDirectory" "C2"; do
+for cat_name in "KOPPA" "NetworkRecon" "WebAttacks" "PasswordAttacks" \
+                "Exploitation" "Recon" "Wireless" "Forensics" \
+                "ReverseEngineering" "VulnScan" "ActiveDirectory" "C2"; do
     cat > "$CATS_DIR/koppa-${cat_name,,}.directory" << CATEOF
 [Desktop Entry]
 Version=1.0
@@ -784,7 +798,7 @@ Icon=/usr/share/icons/koppa-os/koppa-os.png
 CATEOF
 done
 
-# ── Menus ─────────────────────────────────────────────────────────────────────
+# ── Application menus ─────────────────────────────────────────────────────────
 mkdir -p /etc/xdg/menus/applications-merged
 cat > /etc/xdg/menus/applications-merged/koppa-categories.menu << 'MENUEOF'
 <!DOCTYPE Menu PUBLIC "-//freedesktop//DTD Menu 1.0//EN"
@@ -857,6 +871,7 @@ cat > /etc/xdg/menus/applications-merged/koppa-categories.menu << 'MENUEOF'
     <Directory>koppa-c2.directory</Directory>
     <Include><Category>C2</Category></Include>
   </Menu>
+
 </Menu>
 MENUEOF
 

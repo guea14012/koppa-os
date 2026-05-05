@@ -22,24 +22,23 @@ Window.SetBackgroundTopColor(bg_color.red, bg_color.green, bg_color.blue);
 Window.SetBackgroundBottomColor(0.02, 0.00, 0.00);
 
 // ── ASCII Logo ────────────────────────────────────────────────────────────────
-logo_lines[0]  = "  ██╗  ██╗ ██████╗ ██████╗ ██████╗  █████╗        ██████╗ ███████╗";
-logo_lines[1]  = "  ██║ ██╔╝██╔═══██╗██╔══██╗██╔══██╗██╔══██╗      ██╔═══██╗██╔════╝";
-logo_lines[2]  = "  █████╔╝ ██║   ██║██████╔╝██████╔╝███████║█████╗██║   ██║███████╗";
-logo_lines[3]  = "  ██╔═██╗ ██║   ██║██╔═══╝ ██╔═══╝ ██╔══██║╚════╝██║   ██║╚════██║";
-logo_lines[4]  = "  ██║  ██╗╚██████╔╝██║     ██║     ██║  ██║      ╚██████╔╝███████║";
-logo_lines[5]  = "  ╚═╝  ╚═╝ ╚═════╝ ╚═╝     ╚═╝     ╚═╝  ╚═╝       ╚═════╝ ╚══════╝";
-logo_lines[6]  = "";
-logo_lines[7]  = "           Independent Redteam Operating System  ·  Debian 12";
+logo_lines[0]  = "  KK  KK OOOOOO PPPPPP PPPPPP   AAAA        OOOOOO  SSSSSS";
+logo_lines[1]  = "  KK KK  OO  OO PP  PP PP  PP  AA  AA      OO  OO  SS    ";
+logo_lines[2]  = "  KKKK   OO  OO PPPPPP PPPPPP AAAAAAAA     OO  OO   SSSSS";
+logo_lines[3]  = "  KK KK  OO  OO PP     PP     AA    AA     OO  OO       SS";
+logo_lines[4]  = "  KK  KK OOOOOO PP     PP     AA    AA      OOOOOO  SSSSSS";
+logo_lines[5]  = "";
+logo_lines[6]  = "     Independent Redteam Operating System  -  Debian 12";
 
 screen_width  = Window.GetWidth();
 screen_height = Window.GetHeight();
 
-logo_y_start = screen_height * 0.30;
+logo_y_start = screen_height * 0.28;
 line_height  = 18;
-num_lines    = 8;
+num_lines    = 7;
 
 for (i = 0; i < num_lines; i++) {
-    label = Image.Text(logo_lines[i], 1.0, 1.0, 1.0, 1, "Monospace Bold 10");
+    label = Image.Text(logo_lines[i], white_color.red, white_color.green, white_color.blue, 1, "Monospace Bold 10");
     sprite = Sprite(label);
     sprite.SetX(screen_width / 2 - label.GetWidth() / 2);
     sprite.SetY(logo_y_start + i * line_height);
@@ -50,27 +49,27 @@ for (i = 0; i < num_lines; i++) {
 tagline = Image.Text("Powered by KOPPA v3.0.1", red_color.red, red_color.green, red_color.blue, 1, "Monospace 9");
 tagline_sprite = Sprite(tagline);
 tagline_sprite.SetX(screen_width / 2 - tagline.GetWidth() / 2);
-tagline_sprite.SetY(logo_y_start + num_lines * line_height + 12);
+tagline_sprite.SetY(logo_y_start + num_lines * line_height + 10);
 tagline_sprite.SetZ(10);
 
 // ── Progress Bar ──────────────────────────────────────────────────────────────
-bar_width   = screen_width * 0.40;
+bar_width   = Math.Int(screen_width * 0.40);
 bar_height  = 3;
-bar_x       = screen_width / 2 - bar_width / 2;
-bar_y       = screen_height * 0.75;
+bar_x       = Math.Int(screen_width / 2 - bar_width / 2);
+bar_y       = Math.Int(screen_height * 0.75);
 
-// Bar background
-bar_bg = Image(bar_width, bar_height);
-bar_bg_writer = bar_bg.GetSurface();
-bar_bg_writer.SetSourceRGBA(dim_color.red, dim_color.green, dim_color.blue, 0.6);
-bar_bg_writer.Paint(0, 0, bar_width, bar_height);
-bar_bg_sprite = Sprite(bar_bg);
+// Bar background (solid dim rectangle)
+bar_bg_img = Image(bar_width, bar_height);
+bar_bg_canvas = bar_bg_img.GetSurface();
+bar_bg_canvas.SetSourceRGB(dim_color.red, dim_color.green, dim_color.blue);
+bar_bg_canvas.Rectangle(0, 0, bar_width, bar_height);
+bar_bg_canvas.Fill();
+bar_bg_sprite = Sprite(bar_bg_img);
 bar_bg_sprite.SetX(bar_x);
 bar_bg_sprite.SetY(bar_y);
 bar_bg_sprite.SetZ(10);
 
-// Bar fill (will be updated)
-progress_fill = Image(1, bar_height);
+// Bar fill sprite (updated on progress change)
 progress_sprite = Sprite();
 progress_sprite.SetX(bar_x);
 progress_sprite.SetY(bar_y);
@@ -80,15 +79,18 @@ fun DrawProgress(progress) {
     fill_w = Math.Int(bar_width * progress);
     if (fill_w < 2) fill_w = 2;
     img = Image(fill_w, bar_height);
-    writer = img.GetSurface();
-    // Gradient: dark red → bright red
-    for (px = 0; px < fill_w; px++) {
+    canvas = img.GetSurface();
+    // Simple gradient: column by column from dim red to bright red
+    px = 0;
+    while (px < fill_w) {
         ratio = px / fill_w;
         r = dim_color.red   + (red_color.red   - dim_color.red)   * ratio;
         g = dim_color.green + (red_color.green - dim_color.green) * ratio;
         b = dim_color.blue  + (red_color.blue  - dim_color.blue)  * ratio;
-        writer.SetSourceRGBA(r, g, b, 1.0);
-        writer.Paint(px, 0, 1, bar_height);
+        canvas.SetSourceRGB(r, g, b);
+        canvas.Rectangle(px, 0, 1, bar_height);
+        canvas.Fill();
+        px = px + 1;
     }
     progress_sprite.SetImage(img);
 }
@@ -96,73 +98,81 @@ fun DrawProgress(progress) {
 DrawProgress(0.0);
 
 // ── Dots (spinner) ────────────────────────────────────────────────────────────
-dot_count = 5;
-dot_radius = 4;
+dot_count   = 5;
+dot_radius  = 4;
 dot_spacing = 20;
 dot_total_w = dot_count * dot_spacing;
-dot_start_x = screen_width / 2 - dot_total_w / 2;
-dot_y = bar_y + 30;
+dot_start_x = Math.Int(screen_width / 2 - dot_total_w / 2);
+dot_y       = bar_y + 20;
 
-for (d = 0; d < dot_count; d++) {
-    dot_img = Image(dot_radius * 2, dot_radius * 2);
-    dot_writer = dot_img.GetSurface();
-    dot_writer.SetSourceRGBA(dim_color.red, dim_color.green, dim_color.blue, 1.0);
-    dot_writer.Arc(dot_radius, dot_radius, dot_radius, 0, 2 * 3.14159);
-    dot_writer.Fill();
+// Build initial dim dot images and sprites
+d = 0;
+while (d < dot_count) {
+    dot_img    = Image(dot_radius * 2, dot_radius * 2);
+    dot_canvas = dot_img.GetSurface();
+    dot_canvas.SetSourceRGB(dim_color.red, dim_color.green, dim_color.blue);
+    dot_canvas.Arc(dot_radius, dot_radius, dot_radius, 0, 6.28318);
+    dot_canvas.Fill();
     dot_sprites[d] = Sprite(dot_img);
     dot_sprites[d].SetX(dot_start_x + d * dot_spacing);
     dot_sprites[d].SetY(dot_y);
     dot_sprites[d].SetZ(10);
+    d = d + 1;
 }
 
 // ── Status Text ───────────────────────────────────────────────────────────────
-status_text = "";
-status_label = Image.Text("", red_color.red * 0.7, red_color.green, red_color.blue, 1, "Monospace 9");
+status_label = Image.Text(" ", red_color.red, red_color.green, red_color.blue, 1, "Monospace 9");
 status_sprite = Sprite(status_label);
 status_sprite.SetY(dot_y + 22);
 status_sprite.SetZ(10);
+status_sprite.SetX(screen_width / 2 - status_label.GetWidth() / 2);
 
 fun UpdateStatus(msg) {
-    lbl = Image.Text(msg, red_color.red * 0.7, red_color.green, red_color.blue, 1, "Monospace 9");
+    lbl = Image.Text(msg, red_color.red, red_color.green, red_color.blue, 1, "Monospace 9");
     status_sprite.SetImage(lbl);
     status_sprite.SetX(screen_width / 2 - lbl.GetWidth() / 2);
 }
 
 // ── Animation State ───────────────────────────────────────────────────────────
-frame       = 0;
-active_dot  = 0;
+frame         = 0;
+active_dot    = 0;
 boot_progress = 0.0;
 
 fun Refresh() {
-    frame++;
+    frame = frame + 1;
 
-    // Animate dots
+    // Animate dots every 8 frames
     if (frame % 8 == 0) {
         active_dot = (active_dot + 1) % dot_count;
-        for (d = 0; d < dot_count; d++) {
+
+        d = 0;
+        while (d < dot_count) {
+            dist = d - active_dot;
+            if (dist < 0) dist = -dist;
+            if (dist > dot_count / 2) dist = dot_count - dist;
+
             if (d == active_dot) {
-                img = Image(dot_radius * 2, dot_radius * 2);
-                w = img.GetSurface();
-                w.SetSourceRGBA(red_color.red, red_color.green, red_color.blue, 1.0);
-                w.Arc(dot_radius, dot_radius, dot_radius, 0, 2 * 3.14159);
-                w.Fill();
-                dot_sprites[d].SetImage(img);
+                r = red_color.red;
+                g = red_color.green;
+                b = red_color.blue;
             } else {
-                dist = Math.Abs(d - active_dot);
-                if (dist > dot_count / 2) dist = dot_count - dist;
                 fade = 1.0 - (dist / dot_count) * 0.8;
-                img = Image(dot_radius * 2, dot_radius * 2);
-                w = img.GetSurface();
-                w.SetSourceRGBA(dim_color.red * fade + red_color.red * (1 - fade) * 0.2,
-                                dim_color.green, dim_color.blue, 1.0);
-                w.Arc(dot_radius, dot_radius, dot_radius, 0, 2 * 3.14159);
-                w.Fill();
-                dot_sprites[d].SetImage(img);
+                r = dim_color.red * fade;
+                g = dim_color.green;
+                b = dim_color.blue;
             }
+
+            dot_img    = Image(dot_radius * 2, dot_radius * 2);
+            dot_canvas = dot_img.GetSurface();
+            dot_canvas.SetSourceRGB(r, g, b);
+            dot_canvas.Arc(dot_radius, dot_radius, dot_radius, 0, 6.28318);
+            dot_canvas.Fill();
+            dot_sprites[d].SetImage(dot_img);
+            d = d + 1;
         }
     }
 
-    // Advance progress bar
+    // Slowly advance the progress bar between system messages
     if (boot_progress < 0.95) {
         boot_progress = boot_progress + 0.002;
         DrawProgress(boot_progress);
@@ -184,8 +194,15 @@ Plymouth.SetMessageFunction(Message);
 Plymouth.SetDisplayMessageFunction(DisplayMessage);
 
 // ── Password Prompt ───────────────────────────────────────────────────────────
+// Build the bullet string with a loop — String.Repeat() does NOT exist in Plymouth
 fun DisplayPassword(prompt, bullets) {
-    pwd_img = Image.Text(prompt + " " + String.Repeat("●", bullets),
+    bullet_str = "";
+    i = 0;
+    while (i < bullets) {
+        bullet_str = bullet_str + "*";
+        i = i + 1;
+    }
+    pwd_img = Image.Text(prompt + " " + bullet_str,
                          red_color.red, red_color.green, red_color.blue, 1, "Monospace 11");
     status_sprite.SetImage(pwd_img);
     status_sprite.SetX(screen_width / 2 - pwd_img.GetWidth() / 2);
@@ -193,7 +210,7 @@ fun DisplayPassword(prompt, bullets) {
 
 Plymouth.SetDisplayPasswordFunction(DisplayPassword);
 
-// ── Quit (100% fill, then fade) ───────────────────────────────────────────────
+// ── Quit (fill to 100 %, show ready message) ─────────────────────────────────
 fun Quit() {
     DrawProgress(1.0);
     UpdateStatus("KOPPA-OS READY");
