@@ -1,4 +1,4 @@
-# KOPPA-OS — Top 50 Security Tools (Debian Bookworm)
+# KOPPA-OS — Security Tools (Debian Bookworm compatible)
 
 # ── Core system ───────────────────────────────────────────────────────────────
 bash
@@ -21,8 +21,9 @@ build-essential
 python3
 python3-pip
 ruby
+ruby-dev
 
-# ── Network recon (1-10) ──────────────────────────────────────────────────────
+# ── Network recon ─────────────────────────────────────────────────────────────
 nmap
 masscan
 hping3
@@ -34,7 +35,7 @@ tcpdump
 wireshark
 tshark
 
-# ── Web attack (11-17) ────────────────────────────────────────────────────────
+# ── Web attack ────────────────────────────────────────────────────────────────
 nikto
 sqlmap
 dirb
@@ -43,7 +44,7 @@ whatweb
 sslscan
 net-tools
 
-# ── Password attack (18-23) ───────────────────────────────────────────────────
+# ── Password attack ───────────────────────────────────────────────────────────
 john
 hashcat
 hydra
@@ -51,22 +52,22 @@ medusa
 ncrack
 crunch
 
-# ── SMB / AD (24-27) ─────────────────────────────────────────────────────────
+# ── SMB / AD ─────────────────────────────────────────────────────────────────
 smbclient
 python3-impacket
 samdump2
 
-# ── DNS / OSINT (28-32) ───────────────────────────────────────────────────────
+# ── DNS / OSINT ───────────────────────────────────────────────────────────────
 dnsutils
 dnsrecon
 whois
 netcat-openbsd
 
-# ── Wireless (33-34) ─────────────────────────────────────────────────────────
+# ── Wireless ─────────────────────────────────────────────────────────────────
 aircrack-ng
 reaver
 
-# ── Forensics / Stego (35-40) ────────────────────────────────────────────────
+# ── Forensics / Stego ────────────────────────────────────────────────────────
 binwalk
 foremost
 hexedit
@@ -74,12 +75,12 @@ steghide
 libimage-exiftool-perl
 dcfldd
 
-# ── Reverse engineering (41-44) ───────────────────────────────────────────────
+# ── Reverse engineering ───────────────────────────────────────────────────────
 gdb
 ltrace
 strace
 
-# ── Infra / Pivot (45-50) ────────────────────────────────────────────────────
+# ── Infra / Pivot ────────────────────────────────────────────────────────────
 socat
 proxychains4
 openvpn
@@ -99,7 +100,8 @@ xfce4-power-manager
 thunar
 thunar-archive-plugin
 lightdm
-lightdm-webkit2-greeter
+lightdm-gtk-greeter
+lightdm-gtk-greeter-settings
 firefox-esr
 
 # ── Boot splash ───────────────────────────────────────────────────────────────
@@ -107,25 +109,15 @@ plymouth
 plymouth-x11
 plymouth-themes
 
-# ── Info tools ────────────────────────────────────────────────────────────────
+# ── Info / fonts ──────────────────────────────────────────────────────────────
 neofetch
 fonts-dejavu-core
 fonts-liberation
 fonts-unifont
 
-# ── AD / Windows ─────────────────────────────────────────────────────────────
-bloodhound
-neo4j
-golang
-
-# ── Extra web / vuln ──────────────────────────────────────────────────────────
-wpscan
-feroxbuster
-patator
-
 # ── Misc useful ──────────────────────────────────────────────────────────────
-gedit
 mousepad
 catfish
 xarchiver
-libreoffice-calc
+patator
+golang-go
