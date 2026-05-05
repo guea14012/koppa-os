@@ -1,12 +1,19 @@
 #!/bin/sh
 # KOPPA-OS live-build auto/config
-# Compatible with live-build shipped on Ubuntu 22.04 (1:20211005)
+# Compatible with live-build on Ubuntu 22.04 (lb 1:20211005)
 
 set -e
 
 lb config noauto \
     --distribution       bookworm \
     --archive-areas      "main contrib non-free non-free-firmware" \
+    \
+    --mirror-bootstrap          "http://deb.debian.org/debian" \
+    --mirror-chroot             "http://deb.debian.org/debian" \
+    --mirror-binary             "http://deb.debian.org/debian" \
+    --mirror-chroot-security    "http://security.debian.org/debian-security" \
+    --mirror-binary-security    "http://security.debian.org/debian-security" \
+    \
     --apt-options        "--yes -oAcquire::Check-Valid-Until=false" \
     --apt-recommends     false \
     \
