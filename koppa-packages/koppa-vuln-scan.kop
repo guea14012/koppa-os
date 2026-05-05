@@ -1,0 +1,76 @@
+## pkg: koppa-vuln-scan
+## version: 1.0.0
+## desc: Full vulnerability scanner — Nuclei, Nikto, WPScan, nmap-vuln, CVE lookup
+# Usage: koppa run koppa-vuln-scan <target> [web|network|cve <id>|full]
+
+import vuln, recon, log, report
+
+fn cmd_web(target) {
+    log.info("===== Web Vulnerability Scan: {target} =====")
+    let findings = []
+    log.info("[*] Fingerprinting tech stack...")
+    let tech = vuln.whatweb(target)
+    log.info("{tech}")
+    log.info("")
+    log.info("[*] Running Nikto...")
+    let nikto_out = vuln.nikto(target)
+    log.info("{nikto_out}")
+    log.info("")
+    log.info("[*] Running Nuclei...")
+    let nuclei_out = vuln.nuclei(target, "", "critical,high,medium")
+    log.info("{nuclei_out}")
+    log.success("Web scan complete!")
+}
+
+fn cmd_network(target) {
+    log.info("===== Network Vulnerability Scan: {target} =====")
+    log.info("[*] Running nmap vuln scripts...")
+    let nmap_out = vuln.nmap_vuln(target)
+    log.info("{nmap_out}")
+    log.info("")
+    log.info("[*] SSL/TLS check...")
+    let ssl_out = vuln.ssl_scan(target)
+    log.info("{ssl_out}")
+    log.success("Network scan complete!")
+}
+
+fn cmd_cve(cve_id) {
+    log.info("===== CVE Lookup: {cve_id} =====")
+    let info = vuln.cve_info(cve_id)
+    log.success("[+] {info}")
+    log.info("")
+    log.info("[*] Searching Exploit-DB...")
+    let exploits = vuln.exploit_db(cve_id)
+    log.info("{exploits}")
+}
+
+fn cmd_full(target) {
+    log.info("===== Full Vulnerability Assessment: {target} =====")
+    cmd_web(target)
+    log.info("")
+    cmd_network(target)
+    log.success("Full scan complete!")
+}
+
+fn cmd_wordpress(target) {
+    log.info("===== WordPress Scan: {target} =====")
+    let out = vuln.wpscan(target)
+    log.info("{out}")
+}
+
+fn main() {
+    let target = __args__[0]
+    let mode   = __args__[1]
+    log.info("===== KOPPA Vulnerability Scanner v1.0 =====")
+    if not target {
+        log.warn("Usage: koppa run koppa-vuln-scan <target> [web|network|cve <id>|full|wordpress]")
+        return
+    }
+    if mode == "web"       { cmd_web(target) }
+    if mode == "network"   { cmd_network(target) }
+    if mode == "cve"       { cmd_cve(mode) }
+    if mode == "full"      { cmd_full(target) }
+    if mode == "wordpress" { cmd_wordpress(target) }
+    if not mode            { cmd_web(target) }
+    log.success("Done!")
+}

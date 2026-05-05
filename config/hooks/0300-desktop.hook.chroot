@@ -1,0 +1,863 @@
+#!/bin/bash
+# KOPPA-OS: Desktop environment — .desktop files, panel, prompt, neofetch
+set -e
+
+echo "[KOPPA-OS] Setting up desktop environment..."
+
+APP_DIR="/usr/share/applications"
+ICON="/usr/share/icons/koppa-os/koppa-os.png"
+TERMINAL="xfce4-terminal"
+
+# ══════════════════════════════════════════════════════════════════════════════
+# .desktop Files — organized by KOPPA security category
+# ══════════════════════════════════════════════════════════════════════════════
+
+# ── KOPPA Tools ───────────────────────────────────────────────────────────────
+cat > "$APP_DIR/koppa-repl.desktop" << 'EOF'
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=KOPPA REPL
+Comment=Interactive KOPPA Security Shell
+Exec=xfce4-terminal --title="KOPPA REPL" -e "koppa repl"
+Icon=/usr/share/icons/koppa-os/koppa-os.png
+Terminal=false
+Categories=KOPPA;Security;
+Keywords=koppa;repl;shell;pentest;
+EOF
+
+cat > "$APP_DIR/koppa-c2.desktop" << 'EOF'
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=KOPPA C2 Server
+Comment=HTTP/DNS Command & Control Server
+Exec=xfce4-terminal --title="KOPPA-C2" -e "koppa-c2 0.0.0.0 8443"
+Icon=/usr/share/icons/koppa-os/koppa-os.png
+Terminal=false
+Categories=KOPPA;Security;C2;
+Keywords=c2;command;control;http;dns;
+EOF
+
+cat > "$APP_DIR/koppa-pkg.desktop" << 'EOF'
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=KOPPA Package Manager
+Comment=Install KOPPA security modules
+Exec=xfce4-terminal --title="KOPPA Packages" -e "koppa pkg list"
+Icon=/usr/share/icons/koppa-os/koppa-os.png
+Terminal=false
+Categories=KOPPA;Security;PackageManager;
+Keywords=koppa;package;install;modules;
+EOF
+
+# ── Network Recon ─────────────────────────────────────────────────────────────
+cat > "$APP_DIR/koppa-nmap.desktop" << 'EOF'
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Nmap
+Comment=Network Mapper — port scan and service detection
+Exec=xfce4-terminal --title="nmap" -e "nmap -h; bash"
+Icon=network-wired
+Terminal=false
+Categories=NetworkRecon;Security;
+Keywords=nmap;scan;port;network;recon;
+EOF
+
+cat > "$APP_DIR/koppa-masscan.desktop" << 'EOF'
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Masscan
+Comment=Mass IP port scanner — fastest in the world
+Exec=xfce4-terminal --title="masscan" -e "masscan --help; bash"
+Icon=network-wired
+Terminal=false
+Categories=NetworkRecon;Security;
+Keywords=masscan;scan;port;fast;
+EOF
+
+cat > "$APP_DIR/koppa-wireshark.desktop" << 'EOF'
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Wireshark
+Comment=Network packet analyzer
+Exec=wireshark
+Icon=wireshark
+Terminal=false
+Categories=NetworkRecon;Security;
+Keywords=wireshark;packet;capture;network;
+EOF
+
+cat > "$APP_DIR/koppa-tcpdump.desktop" << 'EOF'
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=tcpdump
+Comment=Command-line packet capture
+Exec=xfce4-terminal --title="tcpdump" -e "tcpdump --help; bash"
+Icon=network-wired
+Terminal=false
+Categories=NetworkRecon;Security;
+Keywords=tcpdump;packet;capture;
+EOF
+
+# ── Web Attacks ───────────────────────────────────────────────────────────────
+cat > "$APP_DIR/koppa-sqlmap.desktop" << 'EOF'
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=SQLMap
+Comment=Automatic SQL injection tool
+Exec=xfce4-terminal --title="sqlmap" -e "sqlmap --help; bash"
+Icon=applications-internet
+Terminal=false
+Categories=WebAttacks;Security;
+Keywords=sqlmap;sqli;sql;injection;database;
+EOF
+
+cat > "$APP_DIR/koppa-nikto.desktop" << 'EOF'
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Nikto
+Comment=Web server vulnerability scanner
+Exec=xfce4-terminal --title="nikto" -e "nikto -Help; bash"
+Icon=applications-internet
+Terminal=false
+Categories=WebAttacks;Security;
+Keywords=nikto;web;scanner;vulnerability;
+EOF
+
+cat > "$APP_DIR/koppa-gobuster.desktop" << 'EOF'
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Gobuster
+Comment=Directory/file and DNS brute-forcer
+Exec=xfce4-terminal --title="gobuster" -e "gobuster --help; bash"
+Icon=applications-internet
+Terminal=false
+Categories=WebAttacks;Security;
+Keywords=gobuster;dirb;directory;bruteforce;
+EOF
+
+cat > "$APP_DIR/koppa-ffuf.desktop" << 'EOF'
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=ffuf
+Comment=Fast web fuzzer
+Exec=xfce4-terminal --title="ffuf" -e "ffuf -h; bash"
+Icon=applications-internet
+Terminal=false
+Categories=WebAttacks;Security;
+Keywords=ffuf;fuzz;web;directory;
+EOF
+
+cat > "$APP_DIR/koppa-nuclei.desktop" << 'EOF'
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Nuclei
+Comment=Template-based vulnerability scanner
+Exec=xfce4-terminal --title="nuclei" -e "nuclei -h; bash"
+Icon=applications-internet
+Terminal=false
+Categories=WebAttacks;VulnScan;Security;
+Keywords=nuclei;templates;vulnerability;scanner;
+EOF
+
+# ── Password Attacks ──────────────────────────────────────────────────────────
+cat > "$APP_DIR/koppa-hashcat.desktop" << 'EOF'
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Hashcat
+Comment=GPU-accelerated password cracker
+Exec=xfce4-terminal --title="hashcat" -e "hashcat --help; bash"
+Icon=dialog-password
+Terminal=false
+Categories=PasswordAttacks;Security;
+Keywords=hashcat;crack;password;hash;gpu;
+EOF
+
+cat > "$APP_DIR/koppa-john.desktop" << 'EOF'
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=John the Ripper
+Comment=Password cracker
+Exec=xfce4-terminal --title="john" -e "john --help; bash"
+Icon=dialog-password
+Terminal=false
+Categories=PasswordAttacks;Security;
+Keywords=john;crack;password;hash;
+EOF
+
+cat > "$APP_DIR/koppa-hydra.desktop" << 'EOF'
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Hydra
+Comment=Network login brute-forcer
+Exec=xfce4-terminal --title="hydra" -e "hydra -h; bash"
+Icon=dialog-password
+Terminal=false
+Categories=PasswordAttacks;Security;
+Keywords=hydra;bruteforce;login;ssh;ftp;
+EOF
+
+# ── Exploitation ──────────────────────────────────────────────────────────────
+cat > "$APP_DIR/koppa-metasploit.desktop" << 'EOF'
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Metasploit Framework
+Comment=The world's most used penetration testing framework
+Exec=xfce4-terminal --title="Metasploit" -e "msfconsole"
+Icon=applications-other
+Terminal=false
+Categories=Exploitation;Security;
+Keywords=metasploit;msf;exploit;payload;meterpreter;
+EOF
+
+cat > "$APP_DIR/koppa-searchsploit.desktop" << 'EOF'
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=SearchSploit
+Comment=Offline ExploitDB search
+Exec=xfce4-terminal --title="searchsploit" -e "searchsploit --help; bash"
+Icon=applications-other
+Terminal=false
+Categories=Exploitation;Security;
+Keywords=searchsploit;exploitdb;cve;exploit;
+EOF
+
+cat > "$APP_DIR/koppa-cme.desktop" << 'EOF'
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=CrackMapExec
+Comment=Active Directory pentesting swiss army knife
+Exec=xfce4-terminal --title="CrackMapExec" -e "cme --help; bash"
+Icon=applications-other
+Terminal=false
+Categories=Exploitation;ActiveDirectory;Security;
+Keywords=crackmapexec;cme;smb;winrm;ad;
+EOF
+
+# ── Recon / OSINT ─────────────────────────────────────────────────────────────
+cat > "$APP_DIR/koppa-amass.desktop" << 'EOF'
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Amass
+Comment=In-depth attack surface mapping and asset discovery
+Exec=xfce4-terminal --title="amass" -e "amass -h; bash"
+Icon=system-search
+Terminal=false
+Categories=Recon;OSINT;Security;
+Keywords=amass;subdomain;dns;recon;osint;
+EOF
+
+cat > "$APP_DIR/koppa-theharvester.desktop" << 'EOF'
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=theHarvester
+Comment=Email, names, subdomains, IPs, URLs harvester
+Exec=xfce4-terminal --title="theHarvester" -e "theHarvester -h; bash"
+Icon=system-search
+Terminal=false
+Categories=Recon;OSINT;Security;
+Keywords=theharvester;email;osint;harvest;
+EOF
+
+# ── Forensics / RE ────────────────────────────────────────────────────────────
+cat > "$APP_DIR/koppa-binwalk.desktop" << 'EOF'
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Binwalk
+Comment=Firmware extraction and analysis
+Exec=xfce4-terminal --title="binwalk" -e "binwalk --help; bash"
+Icon=applications-science
+Terminal=false
+Categories=Forensics;ReverseEngineering;Security;
+Keywords=binwalk;firmware;extract;forensics;
+EOF
+
+cat > "$APP_DIR/koppa-radare2.desktop" << 'EOF'
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Radare2
+Comment=Advanced binary analysis framework
+Exec=xfce4-terminal --title="radare2" -e "r2 -h; bash"
+Icon=applications-science
+Terminal=false
+Categories=Forensics;ReverseEngineering;Security;
+Keywords=radare2;r2;reverse;disassemble;binary;
+EOF
+
+cat > "$APP_DIR/koppa-volatility.desktop" << 'EOF'
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Volatility3
+Comment=Memory forensics framework
+Exec=xfce4-terminal --title="volatility3" -e "python3 -m volatility3 -h; bash"
+Icon=applications-science
+Terminal=false
+Categories=Forensics;Security;
+Keywords=volatility;memory;forensics;dump;
+EOF
+
+# ── Wireless ──────────────────────────────────────────────────────────────────
+cat > "$APP_DIR/koppa-aircrack.desktop" << 'EOF'
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Aircrack-ng
+Comment=WiFi network security assessment suite
+Exec=xfce4-terminal --title="aircrack-ng" -e "aircrack-ng --help; bash"
+Icon=network-wireless
+Terminal=false
+Categories=Wireless;Security;
+Keywords=aircrack;wifi;wireless;wpa;crack;
+EOF
+
+# ── System ────────────────────────────────────────────────────────────────────
+cat > "$APP_DIR/koppa-terminal.desktop" << 'EOF'
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=KOPPA Terminal
+Comment=Dark red terminal emulator
+Exec=xfce4-terminal
+Icon=utilities-terminal
+Terminal=false
+Categories=System;TerminalEmulator;
+Keywords=terminal;shell;bash;
+EOF
+
+cat > "$APP_DIR/koppa-files.desktop" << 'EOF'
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=File Manager
+Comment=Browse files
+Exec=thunar
+Icon=system-file-manager
+Terminal=false
+Categories=System;FileManager;
+Keywords=files;manager;
+EOF
+
+# ── Fix permissions ───────────────────────────────────────────────────────────
+chmod 644 "$APP_DIR"/koppa-*.desktop
+update-desktop-database "$APP_DIR" 2>/dev/null || true
+
+# ══════════════════════════════════════════════════════════════════════════════
+# Desktop shortcuts (~/Desktop)
+# ══════════════════════════════════════════════════════════════════════════════
+SKEL_DESKTOP="/etc/skel/Desktop"
+mkdir -p "$SKEL_DESKTOP"
+
+for f in koppa-repl koppa-c2 koppa-metasploit koppa-nmap koppa-wireshark koppa-terminal; do
+    cp "$APP_DIR/$f.desktop" "$SKEL_DESKTOP/$f.desktop" 2>/dev/null || true
+    chmod +x "$SKEL_DESKTOP/$f.desktop"
+done
+
+# ══════════════════════════════════════════════════════════════════════════════
+# XFCE4 Panel Configuration
+# ══════════════════════════════════════════════════════════════════════════════
+PANEL_DIR="/etc/skel/.config/xfce4/xfconf/xfce-perchannel-xml"
+mkdir -p "$PANEL_DIR"
+
+cat > "$PANEL_DIR/xfce4-panel.xml" << 'PANELEOF'
+<?xml version="1.0" encoding="UTF-8"?>
+<channel name="xfce4-panel" version="1.0">
+  <property name="configver" type="int" value="2"/>
+  <property name="panels" type="array">
+    <value type="int" value="1"/>
+    <value type="int" value="2"/>
+  </property>
+
+  <!-- Top panel -->
+  <property name="panel-1" type="empty">
+    <property name="position"       type="string" value="p=6;x=0;y=0"/>
+    <property name="length"         type="uint"   value="100"/>
+    <property name="position-locked" type="bool"  value="true"/>
+    <property name="size"           type="uint"   value="30"/>
+    <property name="background-style" type="int"  value="1"/>
+    <property name="background-color" type="string" value="#05000085"/>
+    <property name="enter-opacity"  type="uint"   value="100"/>
+    <property name="leave-opacity"  type="uint"   value="95"/>
+    <property name="plugin-ids" type="array">
+      <value type="int" value="1"/>
+      <value type="int" value="2"/>
+      <value type="int" value="3"/>
+      <value type="int" value="4"/>
+      <value type="int" value="5"/>
+      <value type="int" value="6"/>
+      <value type="int" value="7"/>
+      <value type="int" value="8"/>
+      <value type="int" value="9"/>
+    </property>
+  </property>
+
+  <!-- Bottom dock -->
+  <property name="panel-2" type="empty">
+    <property name="position"       type="string" value="p=10;x=0;y=0"/>
+    <property name="length"         type="uint"   value="60"/>
+    <property name="position-locked" type="bool"  value="true"/>
+    <property name="size"           type="uint"   value="44"/>
+    <property name="background-style" type="int"  value="1"/>
+    <property name="background-color" type="string" value="#05000099"/>
+    <property name="enter-opacity"  type="uint"   value="100"/>
+    <property name="leave-opacity"  type="uint"   value="85"/>
+    <property name="plugin-ids" type="array">
+      <value type="int" value="11"/>
+      <value type="int" value="12"/>
+      <value type="int" value="13"/>
+      <value type="int" value="14"/>
+      <value type="int" value="15"/>
+      <value type="int" value="16"/>
+      <value type="int" value="17"/>
+      <value type="int" value="18"/>
+    </property>
+  </property>
+
+  <!-- Plugin definitions -->
+  <!-- 1: whisker menu -->
+  <property name="plugin-1" type="string" value="whiskermenu">
+    <property name="show-button-title" type="bool" value="true"/>
+    <property name="button-title"      type="string" value="KOPPA-OS"/>
+    <property name="button-icon"       type="string" value="/usr/share/icons/koppa-os/koppa-os.png"/>
+  </property>
+
+  <!-- 2: separator -->
+  <property name="plugin-2" type="string" value="separator">
+    <property name="expand"    type="bool" value="false"/>
+    <property name="style"     type="int"  value="0"/>
+  </property>
+
+  <!-- 3: tasklist -->
+  <property name="plugin-3" type="string" value="tasklist">
+    <property name="show-labels"    type="bool" value="true"/>
+    <property name="show-wireframes" type="bool" value="false"/>
+    <property name="grouping"       type="uint" value="1"/>
+    <property name="include-all-workspaces" type="bool" value="false"/>
+    <property name="flat-buttons"   type="bool" value="true"/>
+  </property>
+
+  <!-- 4: spacer -->
+  <property name="plugin-4" type="string" value="separator">
+    <property name="expand" type="bool" value="true"/>
+    <property name="style"  type="int"  value="0"/>
+  </property>
+
+  <!-- 5: systray -->
+  <property name="plugin-5" type="string" value="systray">
+    <property name="size-max"         type="uint" value="22"/>
+    <property name="square-icons"     type="bool" value="false"/>
+  </property>
+
+  <!-- 6: separator -->
+  <property name="plugin-6" type="string" value="separator">
+    <property name="expand" type="bool" value="false"/>
+    <property name="style"  type="int"  value="0"/>
+  </property>
+
+  <!-- 7: clock -->
+  <property name="plugin-7" type="string" value="clock">
+    <property name="mode"              type="uint" value="2"/>
+    <property name="digital-format"   type="string" value="%H:%M:%S"/>
+    <property name="digital-font"     type="string" value="Monospace Bold 10"/>
+    <property name="show-inactive-buttons" type="bool" value="true"/>
+  </property>
+
+  <!-- 8: action buttons -->
+  <property name="plugin-8" type="string" value="actions">
+    <property name="items"  type="array">
+      <value type="string" value="-logout"/>
+      <value type="string" value="-lock-screen"/>
+      <value type="string" value="-shutdown"/>
+    </property>
+    <property name="appearance" type="int" value="0"/>
+  </property>
+
+  <!-- Bottom dock plugins: launchers -->
+  <!-- 11: KOPPA REPL -->
+  <property name="plugin-11" type="string" value="launcher">
+    <property name="items" type="array">
+      <value type="string" value="koppa-repl.desktop"/>
+    </property>
+  </property>
+
+  <!-- 12: Terminal -->
+  <property name="plugin-12" type="string" value="launcher">
+    <property name="items" type="array">
+      <value type="string" value="koppa-terminal.desktop"/>
+    </property>
+  </property>
+
+  <!-- 13: Nmap -->
+  <property name="plugin-13" type="string" value="launcher">
+    <property name="items" type="array">
+      <value type="string" value="koppa-nmap.desktop"/>
+    </property>
+  </property>
+
+  <!-- 14: Metasploit -->
+  <property name="plugin-14" type="string" value="launcher">
+    <property name="items" type="array">
+      <value type="string" value="koppa-metasploit.desktop"/>
+    </property>
+  </property>
+
+  <!-- 15: Wireshark -->
+  <property name="plugin-15" type="string" value="launcher">
+    <property name="items" type="array">
+      <value type="string" value="koppa-wireshark.desktop"/>
+    </property>
+  </property>
+
+  <!-- 16: Burpsuite/Web -->
+  <property name="plugin-16" type="string" value="launcher">
+    <property name="items" type="array">
+      <value type="string" value="koppa-ffuf.desktop"/>
+    </property>
+  </property>
+
+  <!-- 17: Files -->
+  <property name="plugin-17" type="string" value="launcher">
+    <property name="items" type="array">
+      <value type="string" value="koppa-files.desktop"/>
+    </property>
+  </property>
+
+  <!-- 18: Firefox -->
+  <property name="plugin-18" type="string" value="launcher">
+    <property name="items" type="array">
+      <value type="string" value="firefox-esr.desktop"/>
+    </property>
+  </property>
+</channel>
+PANELEOF
+
+# ══════════════════════════════════════════════════════════════════════════════
+# Whisker Menu Categories
+# ══════════════════════════════════════════════════════════════════════════════
+WHISKER_CFG="/etc/skel/.config/xfce4/panel/whiskermenu-1.rc"
+mkdir -p "$(dirname "$WHISKER_CFG")"
+cat > "$WHISKER_CFG" << 'WHISKEREOF'
+button-title=KOPPA-OS
+button-icon=/usr/share/icons/koppa-os/koppa-os.png
+show-button-title=true
+show-button-icon=true
+
+favorites=koppa-repl.desktop,koppa-c2.desktop,koppa-metasploit.desktop,koppa-nmap.desktop,koppa-wireshark.desktop,koppa-hashcat.desktop
+
+recent-items-max=10
+favorites-in-recent=false
+
+display-favorites=true
+display-recent=true
+display-applications=true
+
+item-icon-size=2
+hover-switch-category=true
+show-generic-names=false
+show-descriptions=true
+show-tooltips=false
+show-separator-after-favorites=true
+
+sort-categories=false
+category-icon-size=0
+
+search-actions=2
+
+[search-action-0]
+name=Search Files
+pattern=!
+command=catfish --path=/ --start %s
+
+[search-action-1]
+name=Google Search
+pattern=?
+command=firefox-esr "https://www.google.com/search?q=%s"
+WHISKEREOF
+
+# ══════════════════════════════════════════════════════════════════════════════
+# Neofetch configuration
+# ══════════════════════════════════════════════════════════════════════════════
+NEOFETCH_CFG="/etc/skel/.config/neofetch/config.conf"
+mkdir -p "$(dirname "$NEOFETCH_CFG")"
+
+cat > "$NEOFETCH_CFG" << 'NEOFETCHEOF'
+print_info() {
+    prin ""
+    info title
+    info underline
+    info "OS"      distro
+    info "Kernel"  kernel
+    info "Uptime"  uptime
+    info "Packages" packages
+    info "Shell"   shell
+    info "Terminal" term
+    info "CPU"     cpu
+    info "Memory"  memory
+    prin ""
+    info "KOPPA"   koppa_ver
+    prin ""
+    prin "$(color 1)●$(color 1)● $(color 2)●$(color 2)● $(color 3)●$(color 3)● $(color 4)●$(color 4)● $(color 5)●$(color 5)● $(color 6)●$(color 6)●"
+    prin ""
+}
+
+koppa_ver() {
+    koppa_version=$(koppa --version 2>/dev/null | head -1 || echo "v3.0.1")
+    echo "$koppa_version (Security DSL)"
+}
+
+kernel_shorthand="on"
+distro_shorthand="off"
+os_arch="on"
+uptime_shorthand="on"
+memory_percent="on"
+memory_unit="gib"
+package_managers="on"
+shell_path="off"
+shell_version="on"
+cpu_brand="on"
+cpu_speed="on"
+cpu_cores="logical"
+cpu_temp="off"
+gpu_brand="on"
+gpu_type="all"
+
+bold="on"
+underline_enabled="on"
+underline_char="─"
+separator=" ▶"
+
+block_range=(0 15)
+color_blocks="on"
+block_width=3
+block_height=1
+
+colors=(1 7 7 7 7 7)
+bold="on"
+
+image_backend="ascii"
+image_source="auto"
+ascii_distro="auto"
+ascii_colors=(1 7 7 1 7 1)
+ascii_bold="on"
+
+custom_ascii='
+\e[31m  ██╗  ██╗ ██████╗ ██████╗ ██████╗  █████╗       \e[0m
+\e[31m  ██║ ██╔╝██╔═══██╗██╔══██╗██╔══██╗██╔══██╗      \e[0m
+\e[31m  █████╔╝ ██║   ██║██████╔╝██████╔╝███████║█████╗\e[0m
+\e[31m  ██╔═██╗ ██║   ██║██╔═══╝ ██╔═══╝ ██╔══██║╚════╝\e[0m
+\e[31m  ██║  ██╗╚██████╔╝██║     ██║     ██║  ██║      \e[0m
+\e[31m  ╚═╝  ╚═╝ ╚═════╝ ╚═╝     ╚═╝     ╚═╝  ╚═╝      \e[0m
+\e[31m  ██████╗ ███████╗                                 \e[0m
+\e[31m ██╔═══██╗██╔════╝                                 \e[0m
+\e[31m ██║   ██║███████╗  REDTEAM OS  v1.0               \e[0m
+\e[31m ██║   ██║╚════██║  Debian 12 · KOPPA v3.0.1       \e[0m
+\e[31m ╚██████╔╝███████║  Offensive Security Platform    \e[0m
+\e[31m  ╚═════╝ ╚══════╝                                 \e[0m
+'
+
+stdout="off"
+NEOFETCHEOF
+
+# ══════════════════════════════════════════════════════════════════════════════
+# Custom bash prompt + auto-run neofetch
+# ══════════════════════════════════════════════════════════════════════════════
+cat > /etc/skel/.bashrc << 'BASHRCEOF'
+# KOPPA-OS .bashrc
+
+# Source global definitions
+[ -f /etc/bashrc ] && . /etc/bashrc
+
+# ── History ───────────────────────────────────────────────────────────────────
+HISTCONTROL=ignoredups:erasedups
+HISTSIZE=10000
+HISTFILESIZE=20000
+shopt -s histappend
+PROMPT_COMMAND="history -a"
+
+# ── Colors ────────────────────────────────────────────────────────────────────
+RED='\[\e[0;31m\]'
+BRED='\[\e[1;31m\]'
+DRED='\[\e[0;91m\]'
+WHITE='\[\e[1;37m\]'
+DIM='\[\e[0;90m\]'
+RESET='\[\e[0m\]'
+
+# ── KOPPA Prompt ─────────────────────────────────────────────────────────────
+# [koppa@hostname ~]$  in red
+PS1="${DIM}[${BRED}\u${DIM}@${RED}\h${DIM}]${RESET} ${WHITE}\w${RESET} ${BRED}\$${RESET} "
+
+# Root gets skull
+if [ "$(id -u)" = "0" ]; then
+    PS1="${DIM}[${BRED}\u${DIM}@${RED}\h${DIM}]${RESET} ${WHITE}\w${RESET} ${BRED}#${RESET} "
+fi
+
+# ── Aliases ───────────────────────────────────────────────────────────────────
+alias ls='ls --color=auto'
+alias ll='ls -lah --color=auto'
+alias la='ls -lAh --color=auto'
+alias grep='grep --color=auto'
+alias diff='diff --color=auto'
+alias ip='ip --color=auto'
+alias cls='clear'
+
+# KOPPA shortcuts
+alias k='koppa'
+alias kr='koppa repl'
+alias kpl='koppa pkg list'
+alias kpi='koppa pkg install'
+alias kc2='koppa-c2'
+
+# Tool shortcuts
+alias scan='nmap -sV -sC'
+alias msf='msfconsole'
+alias wf='wfuzz'
+alias sq='sqlmap'
+alias hc='hashcat'
+
+# ── Auto-run neofetch on login terminal ──────────────────────────────────────
+if command -v neofetch &>/dev/null; then
+    if [ -n "$PS1" ] && [ -z "$NEOFETCH_DONE" ]; then
+        export NEOFETCH_DONE=1
+        neofetch
+    fi
+fi
+BASHRCEOF
+
+# ── Root also gets the same setup ────────────────────────────────────────────
+cp /etc/skel/.bashrc /root/.bashrc 2>/dev/null || true
+mkdir -p /root/.config/neofetch
+cp "$NEOFETCH_CFG" /root/.config/neofetch/config.conf 2>/dev/null || true
+
+# ══════════════════════════════════════════════════════════════════════════════
+# /etc/issue — pre-login banner (TTY)
+# ══════════════════════════════════════════════════════════════════════════════
+cat > /etc/issue << 'ISSUEEOF'
+
+  ██╗  ██╗ ██████╗ ██████╗ ██████╗  █████╗        ██████╗ ███████╗
+  ██║ ██╔╝██╔═══██╗██╔══██╗██╔══██╗██╔══██╗      ██╔═══██╗██╔════╝
+  █████╔╝ ██║   ██║██████╔╝██████╔╝███████║█████╗██║   ██║███████╗
+  ██╔═██╗ ██║   ██║██╔═══╝ ██╔═══╝ ██╔══██║╚════╝██║   ██║╚════██║
+  ██║  ██╗╚██████╔╝██║     ██║     ██║  ██║      ╚██████╔╝███████║
+  ╚═╝  ╚═╝ ╚═════╝ ╚═╝     ╚═╝     ╚═╝  ╚═╝       ╚═════╝ ╚══════╝
+
+  KOPPA-OS v1.0  ·  Independent Redteam Platform  ·  Debian 12 Bookworm
+  Login: root   Password: koppa
+
+ISSUEEOF
+
+cp /etc/issue /etc/issue.net
+
+# ══════════════════════════════════════════════════════════════════════════════
+# Whisker menu category icons workaround
+# ══════════════════════════════════════════════════════════════════════════════
+CATS_DIR="/usr/share/desktop-directories"
+mkdir -p "$CATS_DIR"
+
+for cat_name in "KOPPA" "NetworkRecon" "WebAttacks" "PasswordAttacks" "Exploitation" "Recon" "Wireless" "Forensics" "ReverseEngineering" "VulnScan" "ActiveDirectory" "C2"; do
+    cat > "$CATS_DIR/koppa-${cat_name,,}.directory" << CATEOF
+[Desktop Entry]
+Version=1.0
+Type=Directory
+Name=${cat_name//-/ }
+Icon=/usr/share/icons/koppa-os/koppa-os.png
+CATEOF
+done
+
+# ── Menus ─────────────────────────────────────────────────────────────────────
+mkdir -p /etc/xdg/menus/applications-merged
+cat > /etc/xdg/menus/applications-merged/koppa-categories.menu << 'MENUEOF'
+<!DOCTYPE Menu PUBLIC "-//freedesktop//DTD Menu 1.0//EN"
+ "http://www.freedesktop.org/standards/menu-spec/menu-1.0.dtd">
+<Menu>
+  <Name>Applications</Name>
+
+  <Menu>
+    <Name>KOPPA</Name>
+    <Directory>koppa-koppa.directory</Directory>
+    <Include><Category>KOPPA</Category></Include>
+  </Menu>
+
+  <Menu>
+    <Name>01. Network Recon</Name>
+    <Directory>koppa-networkrecon.directory</Directory>
+    <Include><Category>NetworkRecon</Category></Include>
+  </Menu>
+
+  <Menu>
+    <Name>02. Web Attacks</Name>
+    <Directory>koppa-webattacks.directory</Directory>
+    <Include><Category>WebAttacks</Category></Include>
+  </Menu>
+
+  <Menu>
+    <Name>03. Password Attacks</Name>
+    <Directory>koppa-passwordattacks.directory</Directory>
+    <Include><Category>PasswordAttacks</Category></Include>
+  </Menu>
+
+  <Menu>
+    <Name>04. Exploitation</Name>
+    <Directory>koppa-exploitation.directory</Directory>
+    <Include><Category>Exploitation</Category></Include>
+  </Menu>
+
+  <Menu>
+    <Name>05. Recon / OSINT</Name>
+    <Directory>koppa-recon.directory</Directory>
+    <Include><Category>Recon</Category></Include>
+  </Menu>
+
+  <Menu>
+    <Name>06. Active Directory</Name>
+    <Directory>koppa-activedirectory.directory</Directory>
+    <Include><Category>ActiveDirectory</Category></Include>
+  </Menu>
+
+  <Menu>
+    <Name>07. Wireless</Name>
+    <Directory>koppa-wireless.directory</Directory>
+    <Include><Category>Wireless</Category></Include>
+  </Menu>
+
+  <Menu>
+    <Name>08. Forensics</Name>
+    <Directory>koppa-forensics.directory</Directory>
+    <Include><Category>Forensics</Category></Include>
+  </Menu>
+
+  <Menu>
+    <Name>09. Reverse Engineering</Name>
+    <Directory>koppa-reverseengineering.directory</Directory>
+    <Include><Category>ReverseEngineering</Category></Include>
+  </Menu>
+
+  <Menu>
+    <Name>10. C2 / Covert</Name>
+    <Directory>koppa-c2.directory</Directory>
+    <Include><Category>C2</Category></Include>
+  </Menu>
+</Menu>
+MENUEOF
+
+echo "[KOPPA-OS] Desktop environment configured."

@@ -1,0 +1,109 @@
+## pkg: koppa-iot
+## version: 1.0.0
+## desc: IoT security testing — MQTT, Modbus, RTSP cameras, SNMP, firmware
+# Usage: koppa run koppa-iot [mqtt|modbus|rtsp|snmp|firmware|ports] <host> [args]
+
+import iot, log, report
+
+fn cmd_mqtt(host, port) {
+    log.info("===== MQTT Broker Test: {host} =====")
+    if not port { port = "1883" }
+    let result = iot.mqtt_connect(host, port)
+    if result {
+        log.success("[+] MQTT broker open (unauthenticated access!)")
+        log.info("Messages received:")
+        let msgs = iot.mqtt_topics(host, port)
+        for m in msgs {
+            log.info("  {m}")
+        }
+    }
+    if not result {
+        log.warn("[-] MQTT broker not accessible or authentication required")
+    }
+}
+
+fn cmd_modbus(host) {
+    log.info("===== Modbus TCP: {host} =====")
+    let result = iot.modbus_scan(host)
+    if result {
+        log.success("[+] Modbus device responding!")
+        log.info("{result}")
+    }
+    if not result {
+        log.warn("[-] No Modbus response")
+    }
+}
+
+fn cmd_rtsp(host, port) {
+    log.info("===== RTSP Camera Scan: {host} =====")
+    if not port { port = "554" }
+    let streams = iot.rtsp_scan(host, port)
+    if streams {
+        log.success("[+] RTSP streams found:")
+        for s in streams {
+            log.success("  {s}")
+        }
+        log.info("[*] Testing credentials...")
+        let creds = iot.rtsp_brute(host, port)
+        if creds {
+            log.success("[+] Default creds: {creds}")
+        }
+    }
+    if not streams {
+        log.warn("[-] No open RTSP streams found")
+    }
+}
+
+fn cmd_snmp(host, community) {
+    log.info("===== SNMP Enumeration: {host} =====")
+    if not community {
+        log.info("[*] Brute-forcing community string...")
+        let found = iot.snmp_brute(host)
+        if found {
+            log.success("[+] Community string: {found}")
+            community = found
+        }
+        if not found {
+            log.warn("[-] No valid community string found")
+            return
+        }
+    }
+    log.info("[*] Walking SNMP tree...")
+    let out = iot.snmp_walk(host, community)
+    log.info("{out}")
+}
+
+fn cmd_firmware(path) {
+    log.info("===== Firmware Analysis: {path} =====")
+    log.info("[*] Extracting interesting strings...")
+    let strings = iot.firmware_strings(path)
+    log.info("Found {len(strings)} interesting strings:")
+    for s in strings {
+        log.success("[+] {s}")
+    }
+}
+
+fn cmd_ports(host) {
+    log.info("===== IoT Port Scan: {host} =====")
+    let iot_ports = iot.iot_ports()
+    log.info("Scanning {len(iot_ports)} IoT-specific ports...")
+    log.info("{iot_ports}")
+}
+
+fn main() {
+    let mode = __args__[0]
+    let host = __args__[1]
+    let arg2 = __args__[2]
+    log.info("===== KOPPA IoT Security v1.0 =====")
+    if not mode {
+        log.warn("Usage: koppa run koppa-iot [mqtt|modbus|rtsp|snmp|firmware|ports] <host> [args]")
+        return
+    }
+    if mode == "mqtt"     { cmd_mqtt(host, arg2) }
+    if mode == "modbus"   { cmd_modbus(host) }
+    if mode == "rtsp"     { cmd_rtsp(host, arg2) }
+    if mode == "snmp"     { cmd_snmp(host, arg2) }
+    if mode == "firmware" { cmd_firmware(host) }
+    if mode == "ports"    { cmd_ports(host) }
+    log.success("Done!")
+}

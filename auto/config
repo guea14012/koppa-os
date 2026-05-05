@@ -1,0 +1,37 @@
+#!/bin/sh
+# KOPPA-OS live-build auto/config
+# Run: lb config [options]  (called automatically by lb build)
+
+set -e
+
+lb config noauto \
+    --distribution       bookworm \
+    --archive-areas      "main contrib non-free non-free-firmware" \
+    --apt-options        "--yes -oAcquire::Check-Valid-Until=false" \
+    --apt-recommends     false \
+    \
+    --binary-image       iso-hybrid \
+    --bootloaders        "grub-efi,syslinux" \
+    --bootappend-live    "boot=live components quiet splash net.ifnames=0 hostname=koppa-os username=root" \
+    --bootappend-live-failsafe "boot=live components memtest noapic noapm nodma nomce nolapic nomodeset nosmp nosplash vga=normal" \
+    \
+    --debian-installer   none \
+    --initsystem         systemd \
+    \
+    --iso-application    "KOPPA-OS" \
+    --iso-preparer       "KOPPA-OS Project" \
+    --iso-publisher      "KOPPA-OS" \
+    --iso-volume         "KOPPA-OS 1.0" \
+    \
+    --architectures      amd64 \
+    \
+    --linux-packages     "linux-image linux-headers" \
+    --linux-flavours     amd64 \
+    \
+    --memtest            none \
+    --win32-loader       false \
+    \
+    --firmware-binary    true \
+    --firmware-chroot    true \
+    \
+    "${@}"

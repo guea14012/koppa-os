@@ -1,0 +1,141 @@
+# KOPPA-OS GRUB2 Theme
+# Dark red cyber aesthetic
+
+title-text: ""
+desktop-color: "#0a0000"
+desktop-image: ""
+
+# ── Terminal ──────────────────────────────────────────────────────────────────
+terminal-font: "Unifont Regular 14"
+terminal-left:   "0%"
+terminal-top:    "0%"
+terminal-width:  "100%"
+terminal-height: "100%"
+terminal-border: "0"
+
+# ── Boot Menu ─────────────────────────────────────────────────────────────────
++ boot_menu {
+    left   = 10%
+    top    = 35%
+    width  = 80%
+    height = 40%
+
+    item_font       = "Unifont Regular 14"
+    item_color      = "#b08080"
+    selected_item_color = "#ffffff"
+
+    item_height  = 28
+    item_padding = 8
+    item_spacing = 4
+
+    icon_width  = 0
+    icon_height = 0
+
+    # Selection highlight bar
+    selected_item_pixmap_style = "sel_*.png"
+
+    scrollbar = false
+}
+
+# ── Header (ASCII art banner) ─────────────────────────────────────────────────
++ label {
+    left  = 5%
+    top   = 5%
+    width = 90%
+    align = center
+    text  = "██╗  ██╗ ██████╗ ██████╗ ██████╗  █████╗        ██████╗ ███████╗"
+    font  = "Unifont Regular 12"
+    color = "#cc1111"
+}
+
++ label {
+    left  = 5%
+    top   = 8%
+    width = 90%
+    align = center
+    text  = "██║ ██╔╝██╔═══██╗██╔══██╗██╔══██╗██╔══██╗      ██╔═══██╗██╔════╝"
+    font  = "Unifont Regular 12"
+    color = "#cc1111"
+}
+
++ label {
+    left  = 5%
+    top   = 11%
+    width = 90%
+    align = center
+    text  = "█████╔╝ ██║   ██║██████╔╝██████╔╝███████║█████╗██║   ██║███████╗"
+    font  = "Unifont Regular 12"
+    color = "#cc1111"
+}
+
++ label {
+    left  = 5%
+    top   = 14%
+    width = 90%
+    align = center
+    text  = "██╔═██╗ ██║   ██║██╔═══╝ ██╔═══╝ ██╔══██║╚════╝██║   ██║╚════██║"
+    font  = "Unifont Regular 12"
+    color = "#cc1111"
+}
+
++ label {
+    left  = 5%
+    top   = 17%
+    width = 90%
+    align = center
+    text  = "██║  ██╗╚██████╔╝██║     ██║     ██║  ██║      ╚██████╔╝███████║"
+    font  = "Unifont Regular 12"
+    color = "#cc1111"
+}
+
++ label {
+    left  = 5%
+    top   = 20%
+    width = 90%
+    align = center
+    text  = "╚═╝  ╚═╝ ╚═════╝ ╚═╝     ╚═╝     ╚═╝  ╚═╝       ╚═════╝ ╚══════╝"
+    font  = "Unifont Regular 12"
+    color = "#cc1111"
+}
+
++ label {
+    left  = 5%
+    top   = 24%
+    width = 90%
+    align = center
+    text  = "Independent Redteam Operating System  ·  Powered by KOPPA v3.0.1  ·  Debian 12"
+    font  = "Unifont Regular 10"
+    color = "#7a2222"
+}
+
+# ── Divider ───────────────────────────────────────────────────────────────────
++ label {
+    left  = 5%
+    top   = 27%
+    width = 90%
+    align = center
+    text  = "───────────────────────────────────────────────────────────────────────────────"
+    font  = "Unifont Regular 10"
+    color = "#3a0000"
+}
+
+# ── Bottom info ───────────────────────────────────────────────────────────────
++ label {
+    left  = 5%
+    top   = 88%
+    width = 90%
+    align = left
+    text  = "[ ↑↓ ] Navigate   [ ENTER ] Boot   [ e ] Edit   [ c ] Console"
+    font  = "Unifont Regular 11"
+    color = "#5a1515"
+}
+
++ label {
+    left  = 5%
+    top   = 92%
+    width = 90%
+    align = right
+    text  = "AUTHORIZED PENTESTING USE ONLY"
+    font  = "Unifont Regular 10"
+    color = "#3a0000"
+}

@@ -8,125 +8,170 @@ on:
 
 permissions:
   contents: write
+  pages: write
+  id-token: write
 
 jobs:
+  # ── Build ISO ────────────────────────────────────────────────────────────────
   build:
-    runs-on: ubuntu-latest
-    container:
-      image: debian:bookworm
-      options: --privileged
+    runs-on: ubuntu-22.04
     timeout-minutes: 180
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install build dependencies
+      - name: Install live-build & dependencies
         run: |
-          apt-get update -qq
-          apt-get install -y \
-            live-build debootstrap xorriso \
-            isolinux syslinux-common squashfs-tools \
-            mtools dosfstools grub-pc-bin grub-efi-amd64-bin \
-            curl wget python3-pip git
-          pip3 install koppa-lang --break-system-packages 2>/dev/null || true
+          sudo apt-get update -qq
+          sudo apt-get install -y \
+            live-build debootstrap xorriso squashfs-tools \
+            isolinux syslinux-common syslinux-efi \
+            grub-pc-bin grub-efi-amd64-bin grub-efi-amd64-signed \
+            shim-signed mtools dosfstools \
+            python3-pil python3-pip \
+            rsync curl wget git
 
-      - name: Prepare KOPPA binaries
+      - name: Set permissions
         run: |
-          mkdir -p config/includes.chroot/usr/share/koppa
+          chmod +x config/hooks/*.hook.chroot
+          chmod +x auto/config auto/build auto/clean
+
+      - name: Copy KOPPA binaries
+        run: |
           mkdir -p config/includes.chroot/usr/bin
-
-          pip3 install koppa-lang \
-            --target config/includes.chroot/usr/share/koppa/lib \
-            2>/dev/null || true
-
           if [ -f scripts/koppa-bin.sh ]; then
             cp scripts/koppa-bin.sh config/includes.chroot/usr/bin/koppa
             chmod +x config/includes.chroot/usr/bin/koppa
-            cp config/includes.chroot/usr/bin/koppa \
-               config/includes.chroot/usr/bin/apollo
           fi
 
       - name: Configure live-build
-        run: |
-          lb config \
-            --distribution bookworm \
-            --architecture amd64 \
-            --archive-areas "main contrib non-free non-free-firmware" \
-            --mirror-bootstrap "http://deb.debian.org/debian" \
-            --mirror-chroot   "http://deb.debian.org/debian" \
-            --mirror-binary   "http://deb.debian.org/debian" \
-            --mirror-chroot-security  "http://security.debian.org/debian-security" \
-            --mirror-binary-security  "http://security.debian.org/debian-security" \
-            --binary-images iso-hybrid \
-            --debian-installer none
-
-      - name: Copy config overlay
-        run: |
-          cp -r config/package-lists/. config/package-lists/ 2>/dev/null || true
-          cp -r config/hooks/.         config/hooks/          2>/dev/null || true
+        run: sudo bash auto/config
 
       - name: Build ISO
-        run: lb build 2>&1 | tee build.log | tail -80
+        run: sudo lb build 2>&1 | tee build.log
+        env:
+          DEBIAN_FRONTEND: noninteractive
 
-      - name: Rename ISO and generate checksum
+      - name: Package ISO
+        id: pkg
         run: |
           ISO=$(ls *.iso 2>/dev/null | head -1)
-          if [ -n "$ISO" ]; then
-            mv "$ISO" "koppa-os-$(date +%Y%m%d)-amd64.iso"
-            sha256sum koppa-os-*.iso | tee koppa-os-sha256.txt
-            ls -lh *.iso
-          else
-            echo "No ISO — build failed"; tail -100 build.log; exit 1
-          fi
+          [ -z "$ISO" ] && { echo "No ISO — build failed"; tail -200 build.log; exit 1; }
+          TAG="${GITHUB_REF_NAME:-dev}"
+          NAME="koppa-os-${TAG}-amd64.iso"
+          mv "$ISO" "$NAME"
+          SHA=$(sha256sum "$NAME" | awk '{print $1}')
+          echo "$SHA  $NAME" > "${NAME}.sha256"
+          SIZE=$(du -sh "$NAME" | cut -f1)
+          echo "name=$NAME"   >> "$GITHUB_OUTPUT"
+          echo "sha256=$SHA"  >> "$GITHUB_OUTPUT"
+          echo "size=$SIZE"   >> "$GITHUB_OUTPUT"
+          echo "Built: $NAME ($SIZE) SHA256=$SHA"
 
       - name: Upload ISO artifact
         uses: actions/upload-artifact@v4
         with:
           name: koppa-os-iso
-          path: "*.iso"
+          path: |
+            ${{ steps.pkg.outputs.name }}
+            ${{ steps.pkg.outputs.name }}.sha256
           retention-days: 30
-        if: always()
 
-      - name: Upload build log on failure
+      - name: Upload build log
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: build-log
           path: build.log
-        if: failure()
+          retention-days: 7
 
       - name: GitHub Release (on tag)
-        if: startsWith(github.ref, 'refs/tags/')
+        if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
+          name: "KOPPA-OS ${{ github.ref_name }}"
           files: |
-            *.iso
-            koppa-os-sha256.txt
+            ${{ steps.pkg.outputs.name }}
+            ${{ steps.pkg.outputs.name }}.sha256
           body: |
             ## KOPPA-OS ${{ github.ref_name }}
-            **Base:** Debian 12 Bookworm · **Arch:** amd64
 
-            ### SHA256
-            sha256: ${{ hashFiles('*.iso') }}
+            **Base:** Debian 12 Bookworm &nbsp;·&nbsp; **Arch:** amd64 &nbsp;·&nbsp; **Size:** ${{ steps.pkg.outputs.size }}
+
+            ### Unique Features (vs Kali Linux)
+            - **KOPPA Language** — security-native DSL with `net`, `inject`, `evasion`, `crypt`, `covert` modules
+            - **KOPPA-C2** — HTTP/DNS C2 framework built into the OS with web operator dashboard
+            - **KOPPA Package Manager** — 19 security modules written in KOPPA language
+            - **Plymouth Boot Splash** — custom animated boot screen
+            - **GRUB2 Theme** — dark red KOPPA branded bootloader
 
             ### Pre-installed Tools (50+)
-            - KOPPA v3.0.1 — Security-native DSL + C2 Framework
-            - nmap · masscan · wireshark · sqlmap · hydra · hashcat · john
-            - metasploit · gobuster · ffuf · nuclei · amass · searchsploit
-            - aircrack-ng · radare2 · volatility3 · crackmapexec · evil-winrm
+            ```
+            Network:    nmap · masscan · wireshark · hping3 · arp-scan · tcpdump
+            Web:        sqlmap · nikto · gobuster · ffuf · nuclei · wfuzz · dirb
+            Password:   hashcat · john · hydra · medusa · ncrack
+            Exploit:    metasploit · searchsploit · crackmapexec · evil-winrm
+            Recon:      amass · theHarvester · dnsrecon · sublist3r · enum4linux-ng
+            Forensics:  binwalk · volatility3 · radare2 · steghide · exiftool
+            Wireless:   aircrack-ng · reaver
+            C2/Pivot:   koppa-c2 · socat · proxychains4 · tor · openvpn
+            ```
 
             ### KOPPA Packages
-            - koppa-portscan · koppa-webfuzz · koppa-jwt-attack · koppa-hashcrack
-            - koppa-recon · koppa-exploit · koppa-evasion · koppa-bruteforce · koppa-c2-client
+            ```
+            koppa-portscan · koppa-webfuzz · koppa-jwt-attack · koppa-hashcrack
+            koppa-recon · koppa-exploit · koppa-evasion · koppa-bruteforce
+            koppa-c2-client · koppa-sqli · koppa-xss · koppa-lfi · koppa-ssrf
+            koppa-privesc · koppa-ad · koppa-network-map · koppa-api
+            koppa-stealth · koppa-phish
+            ```
 
             ### Quick Start
             ```bash
-            koppa repl
-            koppa pkg install koppa-portscan
-            koppa-c2 0.0.0.0 8443
+            # Flash to USB
+            dd if=${{ steps.pkg.outputs.name }} of=/dev/sdX bs=4M status=progress
+
+            # Boot → login: root / koppa
+
+            koppa repl                          # Interactive KOPPA shell
+            koppa pkg install koppa-exploit     # Install security module
+            koppa-c2 0.0.0.0 8443               # Start C2 server
             ```
 
-            ### Boot
-            Flash ISO to USB with Balena Etcher · Login: root / koppa
+            ### SHA256
+            ```
+            ${{ steps.pkg.outputs.sha256 }}
+            ```
 
-            > For authorized security testing only.
+            > **AUTHORIZED USE ONLY** — for penetration testing, CTF competitions, and security research on systems you own or have explicit written permission to test.
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # ── Deploy GitHub Pages ───────────────────────────────────────────────────────
+  deploy-pages:
+    runs-on: ubuntu-22.04
+    needs: build
+    if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')
+
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: www/
+
+      - name: Deploy
+        id: deployment
+        uses: actions/deploy-pages@v4

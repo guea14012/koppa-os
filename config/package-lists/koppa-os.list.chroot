@@ -91,6 +91,41 @@ docker.io
 xfce4
 xfce4-terminal
 xfce4-taskmanager
+xfce4-whiskermenu-plugin
+xfce4-clipman-plugin
+xfce4-screenshooter
+xfce4-notifyd
+xfce4-power-manager
+thunar
+thunar-archive-plugin
 lightdm
-lightdm-gtk-greeter
+lightdm-webkit2-greeter
 firefox-esr
+
+# ── Boot splash ───────────────────────────────────────────────────────────────
+plymouth
+plymouth-x11
+plymouth-themes
+
+# ── Info tools ────────────────────────────────────────────────────────────────
+neofetch
+fonts-dejavu-core
+fonts-liberation
+fonts-unifont
+
+# ── AD / Windows ─────────────────────────────────────────────────────────────
+bloodhound
+neo4j
+golang
+
+# ── Extra web / vuln ──────────────────────────────────────────────────────────
+wpscan
+feroxbuster
+patator
+
+# ── Misc useful ──────────────────────────────────────────────────────────────
+gedit
+mousepad
+catfish
+xarchiver
+libreoffice-calc

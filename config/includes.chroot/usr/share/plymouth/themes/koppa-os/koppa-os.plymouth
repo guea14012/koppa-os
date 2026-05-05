@@ -1,0 +1,8 @@
+[Plymouth Theme]
+Name=KOPPA-OS
+Description=KOPPA-OS Boot Splash
+ModuleName=script
+
+[script]
+ImageDir=/usr/share/plymouth/themes/koppa-os
+ScriptFile=/usr/share/plymouth/themes/koppa-os/koppa-os.script

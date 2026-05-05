@@ -1,181 +1,242 @@
 #!/usr/bin/env python3
 """
-KOPPA Language Interpreter — transpiles .kpkg / .kop to Python and executes it.
+KOPPA Language Interpreter v3.1 — transpiles .kop to Python and executes.
 
-KOPPA syntax differences from Python:
+Syntax:
   let x = v          →  x = v
   fn name(args) {…}  →  def name(args):
   for x in y {…}     →  for x in y:
   if cond {…}        →  if cond:
   if cond {…} else{} →  if cond: … else:
+  try {…} catch(e){} →  try: … except Exception as e:
   loop {…}           →  while True:
   x.len()            →  len(x)
+  x.len              →  len(x)
   x.push(v)          →  x.append(v)
   x.to_int()         →  int(x)
   x.to_str()         →  str(x)
+  x.trim()           →  x.strip()
   x.contains(s)      →  (s in x)
   x.starts_with(s)   →  x.startswith(s)
+  x.ends_with(s)     →  x.endswith(s)
   x.chunk(n)         →  [x[i:i+n] for i in range(0,len(x),n)]
   x.to_json()        →  json.dumps(x)
   x.map(fn(v){…})    →  [… for v in x]
-  x.enumerate()      →  enumerate(x)
-  import net, log    →  from koppa_runtime import net, log, ...
-  ## comment         →  # comment
+  "text {var}"       →  f"text {var}"
+  ## comment         →  (skipped)
+  __args__[n]        →  safe args access (None if out of range)
+  && / ||            →  and / or
 """
 import sys, os, re, json, importlib
 
 RUNTIME_DIR = os.path.join(os.path.dirname(__file__), "runtime")
 
 _MODULE_ALIASES = {
-    "sys": "sys_mod",
+    "sys":  "sys_mod",
+    "os":   "os_mod",
+    "str":  "str_mod",
+    "hash": "hash_mod",
+    "ssl":  "ssl_mod",
+    "time": "time_mod",
 }
 
-def _load_stdlib(names):
-    mods = {}
-    for name in names:
-        alias = _MODULE_ALIASES.get(name, name)
-        spec = importlib.util.spec_from_file_location(
-            alias, os.path.join(RUNTIME_DIR, alias + ".py"))
-        if spec:
-            m = importlib.util.module_from_spec(spec)
-            spec.loader.exec_module(m)
-            mods[name] = m
-    return mods
+
+class _SafeList(list):
+    """List that returns None for out-of-range index instead of crashing."""
+    def __getitem__(self, idx):
+        try:    return list.__getitem__(self, idx)
+        except IndexError: return None
+
+
+def _to_fstring(line):
+    """Convert KOPPA string interpolation "text {var}" → f"text {var}"."""
+    def _maybe_f(m):
+        s = m.group(0)
+        if re.search(r'\{[\w][\w.]*\}', s):
+            return 'f' + s
+        return s
+    # Negative lookbehind: skip strings already prefixed with f/b/r/u
+    return re.sub(r'(?<![fFbBrRuU])"[^"\n\\]*(?:\\.[^"\n\\]*)*"', _maybe_f, line)
+
+
+def _fix_expr(expr):
+    """Transform KOPPA expression syntax to Python equivalents."""
+    expr = expr.strip().rstrip(";")
+    # && / || → and / or
+    expr = expr.replace(" && ", " and ").replace(" || ", " or ")
+    expr = expr.replace("&&", " and ").replace("||", " or ")
+    # .len() and .len property → len(x)
+    expr = re.sub(r"([\w.\[\]\"']+)\.len\(\)", r"len(\1)", expr)
+    expr = re.sub(r"([\w.\[\]\"']+)\.len\b(?!\s*\()", r"len(\1)", expr)
+    # .push(v) → .append(v)
+    expr = re.sub(r"\.push\(", ".append(", expr)
+    # .to_int() / .to_str()
+    expr = re.sub(r"([\w.]+)\.to_int\(\)", r"int(\1)", expr)
+    expr = re.sub(r"([\w.]+)\.to_str\(\)", r"str(\1)", expr)
+    # .trim() → .strip()
+    expr = re.sub(r"([\w.]+)\.trim\(\)", r"\1.strip()", expr)
+    # .contains(s) → (s in x)  — supports chained access like resp.body.contains(s)
+    expr = re.sub(r"([\w.]+)\.contains\((.+?)\)", r"(\2 in \1)", expr)
+    # .starts_with / .ends_with
+    expr = re.sub(r"([\w.]+)\.starts_with\(", r"\1.startswith(", expr)
+    expr = re.sub(r"([\w.]+)\.ends_with\(",   r"\1.endswith(",   expr)
+    # .chunk(n)
+    expr = re.sub(r"([\w.]+)\.chunk\((\d+)\)",
+                  r"[\1[_i:\1[_i+\2]] for _i in range(0,len(\1),\2)]", expr)
+    # .to_json() / .from_json()
+    expr = re.sub(r"([\w.]+)\.to_json\(\)",   r"json.dumps(\1)",  expr)
+    expr = re.sub(r"([\w.]+)\.from_json\(\)", r"json.loads(\1)",  expr)
+    # .join(d)
+    expr = re.sub(r"([\w.]+)\.join\((.+?)\)", r"\2.join(\1)", expr)
+    # .substring(a, b)
+    expr = re.sub(r"([\w.]+)\.substring\((\d+),\s*(\d+)\)", r"\1[\2:\3]", expr)
+    # f-string conversion on string literals in the expression
+    expr = _to_fstring(expr)
+    return expr
+
+
+def _fix_line(line):
+    line = line.rstrip(";").rstrip("{")
+    # Strip trailing lone } that hasn't been consumed
+    line = re.sub(r"\s*\}\s*$", "", line)
+    line = _to_fstring(line)
+    return _fix_expr(line)
+
 
 # ── Transpiler ────────────────────────────────────────────────────────────────
 def _transpile(source):
     lines = source.splitlines()
-    out   = ["import sys as _sys, os, json, re"]
+    out   = ["import sys as _sys, os as _os, json, re"]
     indent_stack = [0]
-    pending_else = False
 
-    def cur_indent(): return "    " * (len(indent_stack) - 1)
+    def ind():
+        return "    " * (len(indent_stack) - 1)
 
     for raw in lines:
         stripped = raw.strip()
 
-        # Strip header comments (## pkg: ...)
-        if stripped.startswith("## "): continue
+        # Skip header / standalone comments
+        if stripped.startswith("## ") or stripped.startswith("# "):
+            continue
 
-        # Blank lines
         if not stripped:
             out.append(""); continue
 
-        indent = len(raw) - len(raw.lstrip())
-        ind    = "    " * (len(indent_stack) - 1)
-
-        # Closing braces → dedent
+        # Closing braces → dedent (handle multiple on same line: } else {)
         while stripped.startswith("}"):
-            if len(indent_stack) > 1: indent_stack.pop()
-            ind = "    " * (len(indent_stack) - 1)
+            if len(indent_stack) > 1:
+                indent_stack.pop()
             stripped = stripped[1:].strip()
-            if not stripped: break
+            if not stripped:
+                break
 
-        if not stripped: continue
-
-        # import statement
-        if re.match(r"^import\s+", stripped):
-            names = re.sub(r"^import\s+", "", stripped).split(",")
-            names = [n.strip() for n in names]
-            for n in names:
-                alias = _MODULE_ALIASES.get(n, n)
-                out.append(f"{ind}import importlib as _il")
-                out.append(f"{ind}_spec_{n} = _il.util.spec_from_file_location('{alias}', '{RUNTIME_DIR}/{alias}.py')")
-                out.append(f"{ind}{n} = _il.util.module_from_spec(_spec_{n}) if _spec_{n} else None")
-                out.append(f"{ind}_spec_{n}.loader.exec_module({n}) if _spec_{n} else None")
+        if not stripped:
             continue
 
-        # let
+        # } catch(err) { — must come before generic } processing
+        m = re.match(r"^\}\s*catch\s*\((\w+)\)\s*\{(.*)", raw.strip())
+        if m:
+            if len(indent_stack) > 1: indent_stack.pop()
+            out.append(f"{ind()}except Exception as {m.group(1)}:")
+            indent_stack.append(len(indent_stack))
+            rest = m.group(2).strip()
+            if rest and not rest.endswith("}"):
+                out.append("    " * len(indent_stack) + _fix_line(rest))
+            continue
+
+        # import
+        if re.match(r"^import\s+", stripped):
+            names = re.sub(r"^import\s+", "", stripped).split(",")
+            for n in [x.strip() for x in names if x.strip()]:
+                alias = _MODULE_ALIASES.get(n, n)
+                out.append(f"{ind()}import importlib as _il_{n}")
+                out.append(f"{ind()}_spec_{n} = _il_{n}.util.spec_from_file_location('{alias}', '{RUNTIME_DIR}/{alias}.py')")
+                out.append(f"{ind()}{n} = _il_{n}.util.module_from_spec(_spec_{n}) if _spec_{n} else None")
+                out.append(f"{ind()}_spec_{n}.loader.exec_module({n}) if _spec_{n} and {n} else None")
+            continue
+
+        # Strip `let`
         stripped = re.sub(r"^let\s+", "", stripped)
 
         # fn → def
         m = re.match(r"^fn\s+(\w+)\s*\((.*?)\)\s*\{?(.*)", stripped)
         if m:
             name, params, rest = m.group(1), m.group(2), m.group(3).strip()
-            out.append(f"{ind}def {name}({params}):")
+            out.append(f"{ind()}def {name}({params}):")
             indent_stack.append(len(indent_stack))
-            if rest and rest != "{":
+            if rest and rest not in ("{", "}"):
                 out.append("    " * len(indent_stack) + _fix_line(rest))
             continue
 
-        # loop
-        if re.match(r"^loop\s*\{", stripped):
-            out.append(f"{ind}while True:")
-            indent_stack.append(len(indent_stack)); continue
+        # try {
+        if re.match(r"^try\s*\{", stripped):
+            out.append(f"{ind()}try:")
+            indent_stack.append(len(indent_stack))
+            continue
 
-        # for … in … {
+        # loop {
+        if re.match(r"^loop\s*\{", stripped):
+            out.append(f"{ind()}while True:")
+            indent_stack.append(len(indent_stack))
+            continue
+
+        # for x in y {
         m = re.match(r"^for\s+(\w+(?:,\s*\w+)?)\s+in\s+(.+?)\s*\{(.*)", stripped)
         if m:
             var, iterable, rest = m.group(1), m.group(2), m.group(3).strip()
-            out.append(f"{ind}for {var} in {_fix_expr(iterable)}:")
-            indent_stack.append(len(indent_stack))
-            if rest: out.append("    " * len(indent_stack) + _fix_line(rest))
-            continue
-
-        # if … { … } else { … }
-        m = re.match(r"^if\s+(.+?)\s*\{(.*)", stripped)
-        if m:
-            cond, rest = m.group(1), m.group(2).strip()
-            out.append(f"{ind}if {_fix_expr(cond)}:")
+            out.append(f"{ind()}for {var} in {_fix_expr(iterable)}:")
             indent_stack.append(len(indent_stack))
             if rest and "}" not in rest:
                 out.append("    " * len(indent_stack) + _fix_line(rest))
+            elif rest.endswith("}"):
+                inner = rest[:-1].strip()
+                if inner:
+                    out.append("    " * len(indent_stack) + _fix_line(inner))
+                if len(indent_stack) > 1: indent_stack.pop()
+            continue
+
+        # if cond { [body] [}] }
+        m = re.match(r"^if\s+(.+?)\s*\{(.*)", stripped)
+        if m:
+            cond, rest = m.group(1), m.group(2).strip()
+            out.append(f"{ind()}if {_fix_expr(cond)}:")
+            indent_stack.append(len(indent_stack))
+            if rest:
+                if rest.endswith("}"):
+                    inner = rest[:-1].strip()
+                    if inner:
+                        out.append("    " * len(indent_stack) + _fix_line(inner))
+                    if len(indent_stack) > 1: indent_stack.pop()
+                elif "}" not in rest:
+                    out.append("    " * len(indent_stack) + _fix_line(rest))
             continue
 
         # else {
         if re.match(r"^else\s*\{", stripped):
             if len(indent_stack) > 1: indent_stack.pop()
-            ind = "    " * (len(indent_stack) - 1)
-            out.append(f"{ind}else:")
-            indent_stack.append(len(indent_stack)); continue
+            out.append(f"{ind()}else:")
+            indent_stack.append(len(indent_stack))
+            continue
 
-        # return
-        m = re.match(r"^return\s+(.*)", stripped)
+        # return [value]
+        m = re.match(r"^return\b(.*)", stripped)
         if m:
-            out.append(f"{ind}return {_fix_expr(m.group(1))}"); continue
+            val = m.group(1).strip()
+            if val:
+                out.append(f"{ind()}return {_fix_expr(val)}")
+            else:
+                out.append(f"{ind()}return")
+            continue
 
         # break / continue
         if stripped in ("break", "continue"):
-            out.append(f"{ind}{stripped}"); continue
+            out.append(f"{ind()}{stripped}")
+            continue
 
         # Regular line
-        out.append(f"{ind}{_fix_line(stripped)}")
+        out.append(f"{ind()}{_fix_line(stripped)}")
 
     return "\n".join(out)
-
-def _fix_expr(expr):
-    """Fix KOPPA expressions to Python equivalents"""
-    expr = expr.strip().rstrip(";")
-    # .len() → len(x)
-    expr = re.sub(r"(\w+)\.len\(\)", r"len(\1)", expr)
-    # .push(v) → .append(v)
-    expr = re.sub(r"\.push\(", ".append(", expr)
-    # .to_int() → int(x)
-    expr = re.sub(r"(\w+)\.to_int\(\)", r"int(\1)", expr)
-    # .to_str() → str(x)
-    expr = re.sub(r"(\w+)\.to_str\(\)", r"str(\1)", expr)
-    # .contains(s) → (s in x)
-    expr = re.sub(r"(\w+)\.contains\((.+?)\)", r"(\2 in \1)", expr)
-    # .starts_with(s)
-    expr = re.sub(r"(\w+)\.starts_with\(", r"\1.startswith(", expr)
-    # .chunk(n)
-    expr = re.sub(r"(\w+)\.chunk\((\d+)\)",
-                  r"[\1[_i:\1[_i+\2]] for _i in range(0,len(\1),\2)]", expr)
-    # .to_json()
-    expr = re.sub(r"(\w+)\.to_json\(\)", r"json.dumps(\1)", expr)
-    # .join(d)
-    expr = re.sub(r"(\w+)\.join\((.+?)\)", r"\2.join(\1)", expr)
-    # .split(d)
-    # .replace handled natively
-    # x or y (default value pattern: a or b where a might be None/empty)
-    # Keep as-is — Python handles it
-    # not keyword
-    expr = re.sub(r"\bnot\b", "not", expr)
-    return expr
-
-def _fix_line(line):
-    line = line.rstrip(";").rstrip("{").rstrip("}")
-    return _fix_expr(line)
 
 
 def run_file(path, args=None):
@@ -187,8 +248,17 @@ def run_file(path, args=None):
 def run_source(source, args=None, filename="<koppa>"):
     args = args or []
     code = _transpile(source)
-    globs = {"__name__": "__main__", "args": args, "json": json, "re": re,
-             "True": True, "False": False, "None": None}
+    safe_args = _SafeList(args)
+    globs = {
+        "__name__": "__main__",
+        "args":     safe_args,
+        "__args__": safe_args,
+        "json":     json,
+        "re":       re,
+        "True":     True,
+        "False":    False,
+        "None":     None,
+    }
     try:
         exec(compile(code, filename, "exec"), globs)
         if "main" in globs:
@@ -203,23 +273,29 @@ def run_source(source, args=None, filename="<koppa>"):
 
 
 def repl():
-    print("\033[1mKOPPA v3.0 Interactive Shell\033[0m  (type 'exit' to quit)")
-    buf = ""; imports_done = False
-    globs = {"__name__": "__main__", "json": json, "re": re,
-             "True": True, "False": False, "None": None}
+    print("\033[1mKOPPA v3.1 Interactive Shell\033[0m  (type 'exit' to quit)")
+    buf = ""
+    globs = {
+        "__name__": "__main__",
+        "json": json, "re": re,
+        "True": True, "False": False, "None": None,
+        "__args__": _SafeList([]), "args": _SafeList([]),
+    }
     while True:
         try:
             line = input("\033[91m>>>\033[0m " if not buf else "... ")
         except (EOFError, KeyboardInterrupt):
             print(); break
-        if line.strip() == "exit": break
+        if line.strip() == "exit":
+            break
         buf += line + "\n"
-        if line.strip() and not line.strip().endswith("{") and "{" not in buf.split("\n")[-2]:
+        last = buf.rstrip("\n").split("\n")[-1]
+        if last.strip() and not last.strip().endswith("{"):
             code = _transpile(buf)
             try:
                 exec(compile(code, "<repl>", "exec"), globs)
             except SyntaxError:
-                pass  # wait for more input
+                pass
             except Exception as e:
                 print(f"\033[91m[-]\033[0m {e}")
             finally:

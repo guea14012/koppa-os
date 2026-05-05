@@ -1,0 +1,119 @@
+## pkg: koppa-cloud
+## version: 1.0.0
+## desc: Cloud security testing — AWS/GCP/Azure metadata, S3 buckets, key scanning
+# Usage: koppa run koppa-cloud [detect|aws|gcp|azure|s3 <name>|keyscan <url>]
+
+import cloud, http, log, report
+
+fn cmd_detect() {
+    log.info("===== Cloud Provider Detection =====")
+    let provider = cloud.detect_cloud()
+    log.success("[+] Cloud: {provider}")
+    if provider == "aws" {
+        let meta = cloud.aws_all_metadata()
+        log.info("Instance ID : {meta}")
+    }
+    if provider == "gcp" {
+        let meta = cloud.gcp_all_metadata()
+        log.info("GCP Meta    : {meta}")
+    }
+    if provider == "azure" {
+        let meta = cloud.azure_metadata()
+        log.info("Azure Meta  : {meta}")
+    }
+}
+
+fn cmd_aws() {
+    log.info("===== AWS IMDS Enumeration =====")
+    let creds = cloud.aws_creds()
+    if creds {
+        log.success("[+] IAM Role    : {creds}")
+        log.success("[+] Access Key  : {creds}")
+    }
+    if not creds {
+        log.warn("[-] No IAM credentials via IMDS")
+    }
+    let userdata = cloud.aws_user_data()
+    if userdata {
+        log.success("[+] User-data found ({len(userdata)}b):")
+        log.info(userdata)
+    }
+    let meta = cloud.aws_all_metadata()
+    log.info("Metadata: {meta}")
+}
+
+fn cmd_gcp() {
+    log.info("===== GCP Metadata Server =====")
+    let token = cloud.gcp_token()
+    if token {
+        log.success("[+] Service Account Token found!")
+        log.info("Token: {token}")
+    }
+    if not token {
+        log.warn("[-] Not running on GCP or SSRF blocked")
+    }
+    let sa = cloud.gcp_service_account()
+    log.info("Service Account: {sa}")
+}
+
+fn cmd_azure() {
+    log.info("===== Azure IMDS =====")
+    let token = cloud.azure_token()
+    if token {
+        log.success("[+] Azure management token found!")
+        log.info("Token (first 50 chars): {token}")
+    }
+    if not token {
+        log.warn("[-] Not running on Azure or SSRF blocked")
+    }
+    let meta = cloud.azure_metadata()
+    log.info("Metadata: {meta}")
+}
+
+fn cmd_s3(name) {
+    log.info("===== S3 Bucket Enumeration: {name} =====")
+    let buckets = cloud.s3_enum(name)
+    if not buckets {
+        log.warn("[-] No open S3 buckets found for: {name}")
+    }
+    for b in buckets {
+        if b {
+            log.success("[+] Bucket: {b}")
+        }
+    }
+}
+
+fn cmd_keyscan(url) {
+    log.info("===== Cloud Key Scanner: {url} =====")
+    let resp = http.get(url)
+    let body = resp.body
+    if not body {
+        log.warn("[-] Could not fetch {url}")
+        return
+    }
+    let found = cloud.key_scan_text(body)
+    if found {
+        log.success("[+] Potential credentials found!")
+        log.info("{found}")
+    }
+    if not found {
+        log.warn("[-] No credentials found in response")
+    }
+}
+
+fn main() {
+    let mode = __args__[0]
+    let arg1 = __args__[1]
+    log.info("===== KOPPA Cloud Security v1.0 =====")
+    if not mode {
+        log.warn("Usage: koppa run koppa-cloud [detect|aws|gcp|azure|s3 <name>|keyscan <url>]")
+        return
+    }
+    if mode == "detect"  { cmd_detect() }
+    if mode == "aws"     { cmd_aws() }
+    if mode == "gcp"     { cmd_gcp() }
+    if mode == "azure"   { cmd_azure() }
+    if mode == "s3"      { cmd_s3(arg1) }
+    if mode == "keyscan" { cmd_keyscan(arg1) }
+    log.success("Done!")
+}

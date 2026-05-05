@@ -1,0 +1,110 @@
+## pkg: koppa-mobile
+## version: 1.0.0
+## desc: Android APK & iOS IPA security analysis
+# Usage: koppa run koppa-mobile [apk-info|apk-secrets|apk-decompile|apk-perms|ipa-info|frida] <file>
+
+import mobile, log, report
+
+fn cmd_apk_info(apk) {
+    log.info("===== APK Info: {apk} =====")
+    let info = mobile.apk_info(apk)
+    log.info("{info}")
+    let perms = mobile.apk_permissions(apk)
+    log.info("")
+    log.info("Permissions ({len(perms)}):")
+    let dangerous = ["READ_SMS", "SEND_SMS", "READ_CONTACTS", "RECORD_AUDIO",
+                     "ACCESS_FINE_LOCATION", "CAMERA", "READ_CALL_LOG",
+                     "PROCESS_OUTGOING_CALLS", "RECEIVE_BOOT_COMPLETED"]
+    for p in perms {
+        for d in dangerous {
+            if p {
+                log.success("[DANGEROUS] {p}")
+            }
+        }
+    }
+    let net = mobile.apk_network_security(apk)
+    if net {
+        log.warn("[!] Cleartext traffic allowed!")
+    }
+}
+
+fn cmd_apk_secrets(apk) {
+    log.info("===== APK Secret Scan: {apk} =====")
+    log.info("[*] Extracting strings (this may take a moment)...")
+    let secrets = mobile.apk_secrets(apk)
+    if secrets {
+        log.success("[+] Secrets found:")
+        log.info("{secrets}")
+    }
+    if not secrets {
+        log.warn("[-] No obvious secrets found")
+    }
+}
+
+fn cmd_apk_decompile(apk) {
+    log.info("===== APK Decompile: {apk} =====")
+    let out = mobile.apk_decompile(apk)
+    if out {
+        log.success("[+] Decompiled to: {out}")
+        log.info("    Browse: ls {out}")
+        log.info("    Search: grep -r 'password' {out}")
+        log.info("    Secrets: grep -rE '(api_key|secret|token)' {out}")
+    }
+    if not out {
+        log.warn("[-] Decompilation failed (install jadx: apt install jadx)")
+    }
+}
+
+fn cmd_apk_perms(apk) {
+    log.info("===== APK Permissions: {apk} =====")
+    let perms = mobile.apk_permissions(apk)
+    log.info("Total: {len(perms)}")
+    for p in perms {
+        log.info("  {p}")
+    }
+}
+
+fn cmd_ipa_info(ipa) {
+    log.info("===== IPA Info: {ipa} =====")
+    let info = mobile.ipa_info(ipa)
+    log.info("{info}")
+    log.info("[*] Extracting strings...")
+    let strings = mobile.ipa_strings(ipa)
+    log.info("Found {len(strings)} strings")
+    for s in strings {
+        if s {
+            log.info("  {s}")
+        }
+    }
+}
+
+fn cmd_frida(package, function_name) {
+    log.info("===== Frida Hook Template =====")
+    let hook = mobile.frida_hook_template(package, function_name)
+    log.success("[+] Hook:")
+    log.info(hook)
+    log.info("")
+    log.info("Inject: frida -U -l /tmp/hook.js -f {package}")
+}
+
+fn main() {
+    let mode = __args__[0]
+    let file = __args__[1]
+    let arg2 = __args__[2]
+    log.info("===== KOPPA Mobile Security v1.0 =====")
+    if not mode {
+        log.warn("Usage: koppa run koppa-mobile [apk-info|apk-secrets|apk-decompile|apk-perms|ipa-info|frida] <file> [arg]")
+        return
+    }
+    if not file {
+        log.warn("Specify APK/IPA file path")
+        return
+    }
+    if mode == "apk-info"      { cmd_apk_info(file) }
+    if mode == "apk-secrets"   { cmd_apk_secrets(file) }
+    if mode == "apk-decompile" { cmd_apk_decompile(file) }
+    if mode == "apk-perms"     { cmd_apk_perms(file) }
+    if mode == "ipa-info"      { cmd_ipa_info(file) }
+    if mode == "frida"         { cmd_frida(file, arg2) }
+    log.success("Done!")
+}

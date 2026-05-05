@@ -1,46 +1,55 @@
-# koppa-portscan v2.0 — Advanced port scanner
-# Usage: koppa run koppa-portscan <target> [top|full]
+## pkg: koppa-portscan
+## version: 2.1.0
+## desc: Advanced port scanner with service detection and banner grabbing
+# Usage: koppa run koppa-portscan <target> [top|full|range <start> <end>]
 
-import scan, net, log, report
+import scan, log, report
 
-let TOP_PORTS = [21, 22, 23, 25, 53, 80, 110, 135, 139, 143, 443, 445,
-                 993, 995, 1433, 1723, 3306, 3389, 5432, 5900, 6379,
-                 8080, 8443, 8888, 27017]
+let TOP_PORTS = [21, 22, 23, 25, 53, 80, 110, 135, 139, 143, 389, 443, 445,
+                 465, 587, 636, 993, 995, 1433, 1521, 1723, 2375, 3000, 3306,
+                 3389, 5432, 5900, 5985, 6379, 7001, 8080, 8443, 8888, 9200, 27017]
 
-fn scan_ports(target, ports) {
+fn do_scan(target, ports) {
+    log.info("Scanning {target} ({len(ports)} ports)...")
     let findings = []
-    let open_count = 0
-    for port in ports {
-        let is_open = scan.tcp(target, port)
-        if is_open {
-            let svc    = scan.service(port)
-            let banner = scan.banner(target, port)
-            log.success("[+] {port}/tcp  OPEN  {svc}  {banner}")
-            findings.push(report.finding("{port}/tcp open", "Info", "Service: {svc}"))
-            open_count = open_count + 1
-        }
+    let results = scan.scan_ports(target, ports)
+    for r in results {
+        log.success("[+] {r}")
+        findings.push(report.finding("{r.port}/tcp open", "info", "Service: {r.service}  Banner: {r.banner}"))
     }
     log.info("")
-    log.info("Open ports: {open_count}")
+    log.info("Open ports: {len(results)}")
     return findings
-}
-
-fn run_scan(target, mode) {
-    log.info("===== KOPPA Port Scanner v2.0 =====")
-    log.info("Target : {target}")
-    let results = scan_ports(target, TOP_PORTS)
-    let rpt = report.terminal(results)
-    log.info(rpt)
-    log.success("Scan complete!")
 }
 
 fn main() {
     let target = __args__[0]
     let mode   = __args__[1]
-    if target {
-        run_scan(target, mode)
-    }
+    log.info("===== KOPPA Port Scanner v2.1 =====")
     if not target {
-        log.warn("Usage: koppa run koppa-portscan <target> [top|full]")
+        log.warn("Usage: koppa run koppa-portscan <target> [top|full|range <start> <end>]")
+        return
     }
+    log.info("Target : {target}")
+    log.info("Mode   : {mode}")
+    if mode == "full" {
+        let results = scan.scan_range(target, 1, 65535, 200)
+        for r in results {
+            log.success("[+] {r}")
+        }
+    }
+    if mode == "range" {
+        let start = __args__[2]
+        let end   = __args__[3]
+        let results = scan.scan_range(target, start, end)
+        for r in results {
+            log.success("[+] {r}")
+        }
+    }
+    if mode == "top" or not mode {
+        let findings = do_scan(target, TOP_PORTS)
+        let rpt = report.terminal(findings)
+        log.info(rpt)
+    }
+    log.success("Scan complete!")
 }
