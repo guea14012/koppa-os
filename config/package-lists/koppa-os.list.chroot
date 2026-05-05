@@ -88,6 +88,23 @@ tor
 openssh-client
 docker.io
 
+# ── Live system (REQUIRED for live boot to work) ─────────────────────────────
+live-boot
+live-boot-initramfs-tools
+live-config
+live-config-systemd
+
+# ── X11 display server (REQUIRED for GUI) ────────────────────────────────────
+xorg
+xserver-xorg
+xserver-xorg-video-all
+xserver-xorg-input-all
+xserver-xorg-input-libinput
+dbus-x11
+xinit
+x11-utils
+x11-xserver-utils
+
 # ── Desktop ───────────────────────────────────────────────────────────────────
 xfce4
 xfce4-terminal
