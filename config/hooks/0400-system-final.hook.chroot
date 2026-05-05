@@ -7,6 +7,9 @@
 
 echo "[KOPPA-OS] Applying final system configuration..."
 
+# ── Make live-config password hook executable ─────────────────────────────────
+chmod +x /lib/live/config/9999-koppa-passwords 2>/dev/null || true
+
 # ── Root password ─────────────────────────────────────────────────────────────
 echo "root:koppa" | chpasswd
 echo "[KOPPA-OS] Root password set to: koppa"
