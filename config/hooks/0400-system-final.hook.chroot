@@ -1,99 +1,43 @@
 #!/bin/bash
 # KOPPA-OS: Final system configuration
-# - Set root password to "koppa"
-# - Enable LightDM
-# - Allow root autologin via LightDM (PAM fix)
-# - Configure live user
 
 echo "[KOPPA-OS] Applying final system configuration..."
 
-# ── Make live-config password hook executable ─────────────────────────────────
-chmod +x /lib/live/config/9999-koppa-passwords 2>/dev/null || true
-
-# ── Root password ─────────────────────────────────────────────────────────────
-echo "root:koppa" | chpasswd
-echo "[KOPPA-OS] Root password set to: koppa"
-
-# ── Enable LightDM at boot ────────────────────────────────────────────────────
-systemctl enable lightdm 2>/dev/null || true
-
-# ── Allow root to autologin via LightDM ──────────────────────────────────────
-# By default PAM blocks uid < 1000 from autologin — remove that restriction
-if [ -f /etc/pam.d/lightdm-autologin ]; then
-    sed -i 's/auth.*pam_succeed_if.*uid.*>=.*1000.*/auth sufficient pam_succeed_if.so uid = 0 quiet/' \
-        /etc/pam.d/lightdm-autologin 2>/dev/null || true
+# ── Create koppa user during BUILD (not at boot) ──────────────────────────────
+# This way LightDM can authenticate immediately without waiting for live-config
+if ! id koppa &>/dev/null; then
+    useradd -m -s /bin/bash \
+        -G sudo,audio,video,cdrom,plugdev,netdev,bluetooth,scanner \
+        -c "KOPPA-OS User" \
+        koppa 2>/dev/null || \
+    useradd -m -s /bin/bash koppa 2>/dev/null || true
 fi
 
-# Ensure LightDM users.conf allows uid 0
-mkdir -p /etc/lightdm
-cat > /etc/lightdm/users.conf << 'EOF'
-[UserList]
-minimum-uid=0
-hidden-users=nobody nobody4 noaccess
-hidden-shells=/bin/false /usr/sbin/nologin
-EOF
+echo "koppa:koppa" | chpasswd
+echo "root:koppa"  | chpasswd
+echo "[KOPPA-OS] Passwords set: koppa/koppa  root/koppa"
 
-# ── Live-config: set root as live user with password koppa ───────────────────
+# ── sudo without password for koppa ──────────────────────────────────────────
+echo "koppa ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/koppa
+chmod 440 /etc/sudoers.d/koppa
+
+# ── Tell live-config to use existing koppa user (don't recreate) ──────────────
 mkdir -p /etc/live/config
-cat > /etc/live/config/koppa-user.conf << 'EOF'
-# KOPPA-OS live-config override
-LIVE_USERNAME="root"
-LIVE_USER_DEFAULT_GROUPS="root"
+cat > /etc/live/config/user.conf << 'EOF'
+LIVE_USERNAME="koppa"
 LIVE_USER_FULLNAME="KOPPA-OS"
+LIVE_USER_DEFAULT_GROUPS="sudo audio video cdrom plugdev netdev"
 EOF
 
-# ── Fix /root home directory permissions ─────────────────────────────────────
-chmod 700 /root
-mkdir -p /root/.config /root/.local/share
+# ── Home directory for koppa ──────────────────────────────────────────────────
+mkdir -p /home/koppa/.config /home/koppa/.local/share
+cp -r /etc/skel/. /home/koppa/ 2>/dev/null || true
+chown -R koppa:koppa /home/koppa
 
-# ── Ensure X11 wrapper allows root ───────────────────────────────────────────
-if [ -f /etc/X11/Xwrapper.config ]; then
-    sed -i 's/^allowed_users=.*/allowed_users=anybody/' /etc/X11/Xwrapper.config
-else
-    mkdir -p /etc/X11
-    echo "allowed_users=anybody" > /etc/X11/Xwrapper.config
-    echo "needs_root_rights=yes" >> /etc/X11/Xwrapper.config
-fi
-
-# ── XFCE4 session — create root session config ───────────────────────────────
-mkdir -p /root/.config/xfce4
-cat > /root/.config/xfce4/xfconf/xfce-perchannel-xml/xfce4-session.xml << 'SESSEOF' 2>/dev/null || true
-<?xml version="1.0" encoding="UTF-8"?>
-<channel name="xfce4-session" version="1.0">
-  <property name="general" type="empty">
-    <property name="FailsafeSessionName" type="string" value="Failsafe"/>
-    <property name="SessionName" type="string" value="Default"/>
-    <property name="SaveOnExit" type="bool" value="false"/>
-  </property>
-  <property name="sessions" type="empty">
-    <property name="Failsafe" type="empty">
-      <property name="IsFailsafe" type="bool" value="true"/>
-      <property name="Count" type="int" value="5"/>
-      <property name="Client0_Command" type="array">
-        <value type="string" value="xfwm4"/>
-      </property>
-      <property name="Client1_Command" type="array">
-        <value type="string" value="xfce4-panel"/>
-      </property>
-      <property name="Client2_Command" type="array">
-        <value type="string" value="Thunar"/>
-        <value type="string" value="--daemon"/>
-      </property>
-      <property name="Client3_Command" type="array">
-        <value type="string" value="xfdesktop"/>
-      </property>
-      <property name="Client4_Command" type="array">
-        <value type="string" value="xfce4-terminal"/>
-      </property>
-    </property>
-  </property>
-</channel>
-SESSEOF
-
-# ── Create XFCE4 session desktop file for LightDM ───────────────────────────
+# ── XFCE4 session file for LightDM ───────────────────────────────────────────
 if [ ! -f /usr/share/xsessions/xfce.desktop ]; then
     mkdir -p /usr/share/xsessions
-    cat > /usr/share/xsessions/xfce.desktop << 'XFCEEOF'
+    cat > /usr/share/xsessions/xfce.desktop << 'EOF'
 [Desktop Entry]
 Version=1.0
 Name=Xfce Session
@@ -105,23 +49,27 @@ DesktopNames=XFCE
 EOF
 fi
 
-# ── Default .xinitrc for root (fallback) ─────────────────────────────────────
-cat > /root/.xinitrc << 'XINITEOF'
-exec startxfce4
-XINITEOF
-chmod +x /root/.xinitrc
+# ── X11 wrapper — allow all users ────────────────────────────────────────────
+mkdir -p /etc/X11
+cat > /etc/X11/Xwrapper.config << 'EOF'
+allowed_users=anybody
+needs_root_rights=yes
+EOF
 
-# ── Update hostname ───────────────────────────────────────────────────────────
+# ── Enable LightDM ────────────────────────────────────────────────────────────
+systemctl enable lightdm 2>/dev/null || true
+
+# ── Hostname ──────────────────────────────────────────────────────────────────
 echo "koppa-os" > /etc/hostname
-cat > /etc/hosts << 'HOSTSEOF'
+cat > /etc/hosts << 'EOF'
 127.0.0.1   localhost
 127.0.1.1   koppa-os
 ::1         localhost ip6-localhost ip6-loopback
 ff02::1     ip6-allnodes
 ff02::2     ip6-allrouters
-HOSTSEOF
+EOF
 
-echo "[KOPPA-OS] System configuration complete."
-echo "[KOPPA-OS]   Root password : koppa"
-echo "[KOPPA-OS]   LightDM      : enabled (autologin root)"
-echo "[KOPPA-OS]   X11          : allowed for all users"
+# ── Make runtime password hook executable ────────────────────────────────────
+chmod +x /lib/live/config/9999-koppa-passwords 2>/dev/null || true
+
+echo "[KOPPA-OS] Done: koppa/koppa  root/koppa  autologin=koppa"
