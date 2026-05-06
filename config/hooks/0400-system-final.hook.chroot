@@ -1,44 +1,41 @@
 #!/bin/bash
-# KOPPA-OS: Final system configuration
+# KOPPA-OS: Create koppa user in squashfs at build time
+# live-config will create its default "user" account but will NOT touch koppa
 
-echo "[KOPPA-OS] Setting up users..."
+echo "[KOPPA-OS] Creating koppa user..."
 
-# ── Create koppa user (uid=1000) ──────────────────────────────────────────────
+# Remove if exists then recreate cleanly
 userdel -r koppa 2>/dev/null || true
-useradd -m -u 1000 -s /bin/bash \
-    -G sudo,audio,video,cdrom,plugdev,netdev \
-    -c "KOPPA-OS" koppa
 
+# Use adduser (Debian standard) with explicit uid=1000
+adduser --uid 1000 --disabled-password --gecos "KOPPA-OS" --shell /bin/bash koppa 2>/dev/null || \
+useradd -m -u 1000 -s /bin/bash -c "KOPPA-OS" koppa 2>/dev/null || true
+
+# Add to groups
+usermod -aG sudo,audio,video,cdrom,plugdev,netdev koppa 2>/dev/null || true
+
+# Set passwords — koppa and root both use "koppa"
 echo "koppa:koppa" | chpasswd
 echo "root:koppa"  | chpasswd
 
-# Full sudo
+# Verify password was set
+grep "^koppa:" /etc/shadow | grep -v "^koppa:!" | grep -v "^koppa:\*" && \
+    echo "[KOPPA-OS] Password OK" || echo "[KOPPA-OS] WARNING: password may not be set"
+
+# sudo without password
 echo "koppa ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/koppa
 chmod 440 /etc/sudoers.d/koppa
 
-# Copy skel to home
+# Copy skel
 cp -rT /etc/skel /home/koppa 2>/dev/null || true
 chown -R koppa:koppa /home/koppa
 chmod 700 /home/koppa
 
-# ── Disable live-config user modules (they reset our password) ────────────────
-for f in /lib/live/config/*adduser* \
-         /lib/live/config/*user* \
-         /lib/live/config/*passwd* \
-         /lib/live/config/*autologin* \
-         /lib/live/config/0030* \
-         /lib/live/config/0031*; do
-    [ -f "$f" ] || continue
-    echo "#!/bin/sh" > "$f"
-    echo "exit 0"   >> "$f"
-    echo "[KOPPA-OS] Disabled live-config module: $f"
-done
-
-# ── X11 wrapper ───────────────────────────────────────────────────────────────
+# X11 allow all
 mkdir -p /etc/X11
 printf 'allowed_users=anybody\nneeds_root_rights=yes\n' > /etc/X11/Xwrapper.config
 
-# ── XFCE4 session ─────────────────────────────────────────────────────────────
+# XFCE4 session
 mkdir -p /usr/share/xsessions
 cat > /usr/share/xsessions/xfce.desktop << 'EOF'
 [Desktop Entry]
@@ -49,16 +46,15 @@ Type=Application
 DesktopNames=XFCE
 EOF
 
-# ── Enable LightDM ────────────────────────────────────────────────────────────
+# Enable LightDM
 systemctl enable lightdm 2>/dev/null || true
 
-# ── PAM — allow autologin for uid >= 1000 ────────────────────────────────────
-if [ -f /etc/pam.d/lightdm-autologin ]; then
-    sed -i '/pam_succeed_if.*uid/d' /etc/pam.d/lightdm-autologin
-fi
+# Remove PAM uid check so koppa (uid=1000) can autologin
+[ -f /etc/pam.d/lightdm-autologin ] && \
+    sed -i '/pam_succeed_if.*uid/d' /etc/pam.d/lightdm-autologin || true
 
-# ── Hostname ──────────────────────────────────────────────────────────────────
+# Hostname
 echo "koppa-os" > /etc/hostname
 printf '127.0.0.1\tlocalhost\n127.0.1.1\tkoppa-os\n' > /etc/hosts
 
-echo "[KOPPA-OS] Done — koppa:koppa  root:koppa"
+echo "[KOPPA-OS] Done: koppa/koppa  root/koppa"
