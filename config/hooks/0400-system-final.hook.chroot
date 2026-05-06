@@ -1,75 +1,64 @@
 #!/bin/bash
 # KOPPA-OS: Final system configuration
 
-echo "[KOPPA-OS] Applying final system configuration..."
+echo "[KOPPA-OS] Setting up users..."
 
-# ── Create koppa user during BUILD (not at boot) ──────────────────────────────
-# This way LightDM can authenticate immediately without waiting for live-config
-if ! id koppa &>/dev/null; then
-    useradd -m -s /bin/bash \
-        -G sudo,audio,video,cdrom,plugdev,netdev,bluetooth,scanner \
-        -c "KOPPA-OS User" \
-        koppa 2>/dev/null || \
-    useradd -m -s /bin/bash koppa 2>/dev/null || true
-fi
+# ── Create koppa user (uid=1000) ──────────────────────────────────────────────
+userdel -r koppa 2>/dev/null || true
+useradd -m -u 1000 -s /bin/bash \
+    -G sudo,audio,video,cdrom,plugdev,netdev \
+    -c "KOPPA-OS" koppa
 
 echo "koppa:koppa" | chpasswd
 echo "root:koppa"  | chpasswd
-echo "[KOPPA-OS] Passwords set: koppa/koppa  root/koppa"
 
-# ── sudo without password for koppa ──────────────────────────────────────────
+# Full sudo
 echo "koppa ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/koppa
 chmod 440 /etc/sudoers.d/koppa
 
-# ── Tell live-config to use existing koppa user (don't recreate) ──────────────
-mkdir -p /etc/live/config
-cat > /etc/live/config/user.conf << 'EOF'
-LIVE_USERNAME="koppa"
-LIVE_USER_FULLNAME="KOPPA-OS"
-LIVE_USER_DEFAULT_GROUPS="sudo audio video cdrom plugdev netdev"
-EOF
-
-# ── Home directory for koppa ──────────────────────────────────────────────────
-mkdir -p /home/koppa/.config /home/koppa/.local/share
-cp -r /etc/skel/. /home/koppa/ 2>/dev/null || true
+# Copy skel to home
+cp -rT /etc/skel /home/koppa 2>/dev/null || true
 chown -R koppa:koppa /home/koppa
+chmod 700 /home/koppa
 
-# ── XFCE4 session file for LightDM ───────────────────────────────────────────
-if [ ! -f /usr/share/xsessions/xfce.desktop ]; then
-    mkdir -p /usr/share/xsessions
-    cat > /usr/share/xsessions/xfce.desktop << 'EOF'
+# ── Disable live-config user modules (they reset our password) ────────────────
+for f in /lib/live/config/*adduser* \
+         /lib/live/config/*user* \
+         /lib/live/config/*passwd* \
+         /lib/live/config/*autologin* \
+         /lib/live/config/0030* \
+         /lib/live/config/0031*; do
+    [ -f "$f" ] || continue
+    echo "#!/bin/sh" > "$f"
+    echo "exit 0"   >> "$f"
+    echo "[KOPPA-OS] Disabled live-config module: $f"
+done
+
+# ── X11 wrapper ───────────────────────────────────────────────────────────────
+mkdir -p /etc/X11
+printf 'allowed_users=anybody\nneeds_root_rights=yes\n' > /etc/X11/Xwrapper.config
+
+# ── XFCE4 session ─────────────────────────────────────────────────────────────
+mkdir -p /usr/share/xsessions
+cat > /usr/share/xsessions/xfce.desktop << 'EOF'
 [Desktop Entry]
 Version=1.0
 Name=Xfce Session
-Comment=Use this session to run Xfce as your desktop environment
 Exec=startxfce4
-Icon=xfce4-logo
 Type=Application
 DesktopNames=XFCE
-EOF
-fi
-
-# ── X11 wrapper — allow all users ────────────────────────────────────────────
-mkdir -p /etc/X11
-cat > /etc/X11/Xwrapper.config << 'EOF'
-allowed_users=anybody
-needs_root_rights=yes
 EOF
 
 # ── Enable LightDM ────────────────────────────────────────────────────────────
 systemctl enable lightdm 2>/dev/null || true
 
+# ── PAM — allow autologin for uid >= 1000 ────────────────────────────────────
+if [ -f /etc/pam.d/lightdm-autologin ]; then
+    sed -i '/pam_succeed_if.*uid/d' /etc/pam.d/lightdm-autologin
+fi
+
 # ── Hostname ──────────────────────────────────────────────────────────────────
 echo "koppa-os" > /etc/hostname
-cat > /etc/hosts << 'EOF'
-127.0.0.1   localhost
-127.0.1.1   koppa-os
-::1         localhost ip6-localhost ip6-loopback
-ff02::1     ip6-allnodes
-ff02::2     ip6-allrouters
-EOF
+printf '127.0.0.1\tlocalhost\n127.0.1.1\tkoppa-os\n' > /etc/hosts
 
-# ── Make runtime password hook executable ────────────────────────────────────
-chmod +x /lib/live/config/9999-koppa-passwords 2>/dev/null || true
-
-echo "[KOPPA-OS] Done: koppa/koppa  root/koppa  autologin=koppa"
+echo "[KOPPA-OS] Done — koppa:koppa  root:koppa"
