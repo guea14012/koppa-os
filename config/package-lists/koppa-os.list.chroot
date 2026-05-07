@@ -129,7 +129,6 @@ fonts-unifont
 
 # ── Installer ────────────────────────────────────────────────────────────────
 calamares
-calamares-settings-debian
 
 # ── Misc useful ──────────────────────────────────────────────────────────────
 mousepad
