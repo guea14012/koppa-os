@@ -1,6 +1,5 @@
 #!/bin/bash
 # KOPPA-OS: GRUB theme + boot parameters
-set -e
 
 echo "[KOPPA-OS] Configuring GRUB..."
 
@@ -10,45 +9,19 @@ GRUB_THEME_DST="/usr/share/grub/themes/koppa-os"
 
 mkdir -p "$GRUB_THEME_DST"
 if [ -d "$GRUB_THEME_SRC" ]; then
-    cp -r "$GRUB_THEME_SRC/"* "$GRUB_THEME_DST/"
+    cp -r "$GRUB_THEME_SRC/." "$GRUB_THEME_DST/" 2>/dev/null || true
 fi
 
-# ── Generate selection highlight bar (solid red block) ────────────────────────
-python3 - << 'PYEOF'
-try:
-    from PIL import Image, ImageDraw
-    # 800x28 selection bar
-    img = Image.new("RGBA", (800, 28), (0, 0, 0, 0))
-    draw = ImageDraw.Draw(img)
-    draw.rectangle([0, 0, 799, 27], fill=(140, 0, 0, 200))
-    draw.line([0, 0, 799, 0], fill=(200, 30, 30, 255), width=1)
-    draw.line([0, 27, 799, 27], fill=(80, 0, 0, 180), width=1)
-    import os
-    os.makedirs("/usr/share/grub/themes/koppa-os", exist_ok=True)
-    img.save("/usr/share/grub/themes/koppa-os/sel_c.png")
-    img.save("/usr/share/grub/themes/koppa-os/sel_e.png")
-    img.save("/usr/share/grub/themes/koppa-os/sel_w.png")
-    print("[KOPPA-OS] GRUB selection images created")
-except ImportError:
-    pass
-PYEOF
-
-# ── /etc/default/grub ─────────────────────────────────────────────────────────
+# ── /etc/default/grub — text mode, works in all VMs ──────────────────────────
 cat > /etc/default/grub << 'GRUBEOF'
 GRUB_DEFAULT=0
 GRUB_TIMEOUT=5
 GRUB_TIMEOUT_STYLE=menu
 GRUB_DISTRIBUTOR="KOPPA-OS"
-GRUB_CMDLINE_LINUX_DEFAULT="quiet splash net.ifnames=0"
+GRUB_CMDLINE_LINUX_DEFAULT="net.ifnames=0"
 GRUB_CMDLINE_LINUX=""
-GRUB_BACKGROUND=""
-GRUB_THEME="/usr/share/grub/themes/koppa-os/theme.txt"
-GRUB_GFXMODE="1920x1080,1366x768,1024x768,auto"
-GRUB_GFXPAYLOAD_LINUX=keep
-GRUB_TERMINAL_OUTPUT="gfxterm"
 GRUBEOF
 
-# ── Update GRUB if installed ───────────────────────────────────────────────────
 update-grub 2>/dev/null || true
 
 echo "[KOPPA-OS] GRUB configured."
