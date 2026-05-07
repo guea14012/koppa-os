@@ -3,6 +3,16 @@
 
 chmod +x /usr/local/bin/koppa-setup.sh 2>/dev/null || true
 
+# ── Docker: use vfs driver (overlay2 unsupported in VirtualBox live) ──────────
+mkdir -p /etc/docker
+cat > /etc/docker/daemon.json << 'EOF'
+{
+  "storage-driver": "vfs",
+  "log-driver": "json-file",
+  "log-opts": { "max-size": "10m", "max-file": "3" }
+}
+EOF
+
 # Pre-create koppa user at build time
 id koppa 2>/dev/null || useradd -m -u 1000 -s /bin/bash \
     -G sudo,audio,video,cdrom,plugdev,netdev koppa 2>/dev/null || true
