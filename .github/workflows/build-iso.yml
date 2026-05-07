@@ -12,14 +12,28 @@ permissions:
   id-token: write
 
 jobs:
-  # ── Build ISO (explicit docker run inside Debian Bookworm) ───────────────────
+  # ── Build ISO inside Debian Bookworm container (GitHub Actions handles pull+retry)
   build:
     runs-on: ubuntu-22.04
+    container:
+      image: debian:bookworm
+      options: --privileged --cap-add=ALL
     timeout-minutes: 180
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Install live-build & dependencies
+        run: |
+          apt-get update -qq
+          apt-get install -y \
+            live-build debootstrap xorriso squashfs-tools \
+            grub-pc-bin grub-efi-amd64-bin \
+            mtools dosfstools python3-pil python3-pip \
+            rsync curl wget git ca-certificates procps
+        env:
+          DEBIAN_FRONTEND: noninteractive
 
       - name: Prepare workspace
         run: |
@@ -31,59 +45,13 @@ jobs:
             chmod +x config/includes.chroot/usr/bin/koppa
           fi
 
-      # Run live-build entirely inside Debian Bookworm container.
-      # Ubuntu's live-build package overrides mirrors to archive.ubuntu.com
-      # regardless of --mirror-* flags; using Debian's own lb avoids this.
-      - name: Build ISO inside Debian container
-        run: |
-          docker run --rm --privileged \
-            --cap-add=ALL \
-            -v "$(pwd):/workspace" \
-            -w /workspace \
-            -e DEBIAN_FRONTEND=noninteractive \
-            debian:bookworm \
-            bash -exc "
-              apt-get update -qq
-              apt-get install -y \
-                live-build debootstrap xorriso squashfs-tools \
-                grub-pc-bin grub-efi-amd64-bin \
-                mtools dosfstools \
-                python3-pil python3-pip \
-                rsync curl wget git ca-certificates \
-                procps
+      - name: Configure live-build
+        run: bash auto/config
 
-              echo '=== live-build version ==='
-              lb --version
-
-              lb config \
-                --distribution bookworm \
-                --archive-areas 'main contrib non-free non-free-firmware' \
-                --apt-options '--yes -oAcquire::Check-Valid-Until=false' \
-                --apt-recommends false \
-                --binary-image iso-hybrid \
-                --bootappend-live 'boot=live components quiet splash net.ifnames=0 hostname=koppa-os username=root' \
-                --debian-installer none \
-                --initsystem systemd \
-                --iso-application 'KOPPA-OS' \
-                --iso-preparer 'KOPPA-OS Project' \
-                --iso-publisher 'KOPPA-OS' \
-                --iso-volume 'KOPPA-OS 1.0' \
-                --architectures amd64 \
-                --linux-packages 'linux-image linux-headers' \
-                --linux-flavours amd64 \
-                --memtest none \
-                --win32-loader false \
-                --firmware-binary true \
-                --firmware-chroot true
-
-              echo '=== Bootstrap mirror ==='
-              grep -i mirror config/bootstrap 2>/dev/null || true
-
-              lb build 2>&1 | tee build.log
-            "
-
-      - name: Fix file ownership
-        run: sudo chown -R "$USER:$USER" . || true
+      - name: Build ISO
+        run: lb build 2>&1 | tee build.log
+        env:
+          DEBIAN_FRONTEND: noninteractive
 
       - name: Package ISO
         id: pkg
@@ -91,7 +59,7 @@ jobs:
           ISO=$(ls *.iso 2>/dev/null | head -1)
           if [ -z "$ISO" ]; then
             echo "No ISO — build failed"
-            tail -300 build.log 2>/dev/null || true
+            tail -200 build.log
             exit 1
           fi
           TAG="${GITHUB_REF_NAME:-dev}"
@@ -103,8 +71,7 @@ jobs:
           echo "name=$NAME"   >> "$GITHUB_OUTPUT"
           echo "sha256=$SHA"  >> "$GITHUB_OUTPUT"
           echo "size=$SIZE"   >> "$GITHUB_OUTPUT"
-          echo "Built: $NAME ($SIZE)"
-          echo "SHA256: $SHA"
+          echo "Built: $NAME ($SIZE) SHA256=$SHA"
 
       - name: Upload ISO artifact
         uses: actions/upload-artifact@v4
@@ -136,21 +103,19 @@ jobs:
 
             **Base:** Debian 12 Bookworm &nbsp;·&nbsp; **Arch:** amd64 &nbsp;·&nbsp; **Size:** ${{ steps.pkg.outputs.size }}
 
-            ### Unique Features (vs Kali Linux)
-            - **KOPPA Language** — security-native DSL with `net`, `inject`, `evasion`, `crypt`, `covert` modules
-            - **KOPPA-C2** — HTTP/DNS C2 framework built into the OS with web operator dashboard
-            - **KOPPA Package Manager** — 19 security modules written in KOPPA language
-            - **Plymouth Boot Splash** — custom animated boot screen
-            - **GRUB2 Theme** — dark red KOPPA branded bootloader
+            ### Login
+            - **Autologin** → desktop อัตโนมัติ
+            - Username: `koppa` / Password: `koppa`
+            - Username: `root` / Password: `koppa`
 
             ### Pre-installed Tools (50+)
             ```
-            Network:    nmap · masscan · wireshark · hping3 · arp-scan · tcpdump
-            Web:        sqlmap · nikto · gobuster · ffuf · nuclei · wfuzz · dirb
+            Network:    nmap · masscan · wireshark · hping3 · tcpdump
+            Web:        sqlmap · nikto · gobuster · ffuf · nuclei · wfuzz
             Password:   hashcat · john · hydra · medusa · ncrack
             Exploit:    metasploit · searchsploit · crackmapexec · evil-winrm
-            Recon:      amass · theHarvester · dnsrecon · sublist3r · enum4linux-ng
-            Forensics:  binwalk · volatility3 · radare2 · steghide · exiftool
+            Recon:      amass · theHarvester · dnsrecon · sublist3r
+            Forensics:  binwalk · volatility3 · radare2 · steghide
             Wireless:   aircrack-ng · reaver
             C2/Pivot:   koppa-c2 · socat · proxychains4 · tor · openvpn
             ```
@@ -158,7 +123,7 @@ jobs:
             ### Quick Start
             ```bash
             dd if=${{ steps.pkg.outputs.name }} of=/dev/sdX bs=4M status=progress
-            # Boot → login: root / koppa
+            # Boot → autologin → XFCE4 desktop
             koppa repl
             koppa-c2 0.0.0.0 8443
             ```
@@ -168,13 +133,13 @@ jobs:
             ${{ steps.pkg.outputs.sha256 }}
             ```
 
-            > **AUTHORIZED USE ONLY** — for pentesting, CTFs, and security research on systems you own or have explicit written permission to test.
+            > **AUTHORIZED USE ONLY** — for pentesting, CTFs, and security research.
           draft: false
           prerelease: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  # ── Deploy GitHub Pages ───────────────────────────────────────────────────────
+  # ── Deploy GitHub Pages ──────────────────────────────────────────────────────
   deploy-pages:
     runs-on: ubuntu-22.04
     needs: build
