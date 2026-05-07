@@ -1,32 +1,18 @@
 #!/bin/bash
-# KOPPA-OS: Create koppa user in squashfs at build time
-# live-config will create its default "user" account but will NOT touch koppa
+# KOPPA-OS: Final system configuration
 
-echo "[KOPPA-OS] Creating koppa user..."
+chmod +x /usr/local/bin/koppa-setup.sh 2>/dev/null || true
 
-# Remove if exists then recreate cleanly
-userdel -r koppa 2>/dev/null || true
+# Pre-create koppa user at build time
+id koppa 2>/dev/null || useradd -m -u 1000 -s /bin/bash \
+    -G sudo,audio,video,cdrom,plugdev,netdev koppa 2>/dev/null || true
 
-# Use adduser (Debian standard) with explicit uid=1000
-adduser --uid 1000 --disabled-password --gecos "KOPPA-OS" --shell /bin/bash koppa 2>/dev/null || \
-useradd -m -u 1000 -s /bin/bash -c "KOPPA-OS" koppa 2>/dev/null || true
-
-# Add to groups
-usermod -aG sudo,audio,video,cdrom,plugdev,netdev koppa 2>/dev/null || true
-
-# Set passwords — koppa and root both use "koppa"
 echo "koppa:koppa" | chpasswd
 echo "root:koppa"  | chpasswd
 
-# Verify password was set
-grep "^koppa:" /etc/shadow | grep -v "^koppa:!" | grep -v "^koppa:\*" && \
-    echo "[KOPPA-OS] Password OK" || echo "[KOPPA-OS] WARNING: password may not be set"
-
-# sudo without password
 echo "koppa ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/koppa
 chmod 440 /etc/sudoers.d/koppa
 
-# Copy skel
 cp -rT /etc/skel /home/koppa 2>/dev/null || true
 chown -R koppa:koppa /home/koppa
 chmod 700 /home/koppa
@@ -49,12 +35,11 @@ EOF
 # Enable LightDM
 systemctl enable lightdm 2>/dev/null || true
 
-# Remove PAM uid check so koppa (uid=1000) can autologin
+# Remove PAM uid check for autologin
 [ -f /etc/pam.d/lightdm-autologin ] && \
     sed -i '/pam_succeed_if.*uid/d' /etc/pam.d/lightdm-autologin || true
 
-# Hostname
 echo "koppa-os" > /etc/hostname
 printf '127.0.0.1\tlocalhost\n127.0.1.1\tkoppa-os\n' > /etc/hosts
 
-echo "[KOPPA-OS] Done: koppa/koppa  root/koppa"
+echo "[KOPPA-OS] Done: koppa/koppa  root/koppa  (enforced via LightDM ExecStartPre)"
