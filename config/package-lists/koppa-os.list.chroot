@@ -88,6 +88,9 @@ tor
 openssh-client
 docker.io
 
+# ── Installer ────────────────────────────────────────────────────────────────
+calamares
+
 # ── Live system (REQUIRED for live boot to work) ─────────────────────────────
 live-boot
 live-boot-initramfs-tools
@@ -127,12 +130,8 @@ fonts-dejavu-core
 fonts-liberation
 fonts-unifont
 
-# ── Installer ────────────────────────────────────────────────────────────────
-calamares
-
 # ── Misc useful ──────────────────────────────────────────────────────────────
 mousepad
 catfish
 xarchiver
 patator
-golang-go

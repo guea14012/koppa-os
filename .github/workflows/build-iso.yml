@@ -90,14 +90,30 @@ jobs:
           path: build.log
           retention-days: 7
 
+      - name: Split ISO if over 2GB GitHub limit
+        id: split
+        run: |
+          NAME="${{ steps.pkg.outputs.name }}"
+          SIZE_BYTES=$(stat -c%s "$NAME")
+          if [ "$SIZE_BYTES" -gt "1900000000" ]; then
+            echo "ISO is $(du -sh $NAME | cut -f1), splitting for GitHub..."
+            split -b 1900m "$NAME" "${NAME}.part"
+            ls ${NAME}.part* | while read f; do echo "$f"; done
+            echo "parts=$(ls ${NAME}.part* | tr '\n' ' ')" >> "$GITHUB_OUTPUT"
+            echo "split=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "parts=$NAME" >> "$GITHUB_OUTPUT"
+            echo "split=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: GitHub Release (on tag)
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
           name: "KOPPA-OS ${{ github.ref_name }}"
           files: |
-            ${{ steps.pkg.outputs.name }}
             ${{ steps.pkg.outputs.name }}.sha256
+            ${{ steps.split.outputs.parts }}
           body: |
             ## KOPPA-OS ${{ github.ref_name }}
 
@@ -120,12 +136,17 @@ jobs:
             C2/Pivot:   koppa-c2 · socat · proxychains4 · tor · openvpn
             ```
 
-            ### Quick Start
+            ### Download & Boot
             ```bash
-            dd if=${{ steps.pkg.outputs.name }} of=/dev/sdX bs=4M status=progress
-            # Boot → autologin → XFCE4 desktop
-            koppa repl
-            koppa-c2 0.0.0.0 8443
+            # If split into parts, reassemble first:
+            cat koppa-os-*.iso.part* > koppa-os-v1.1.0-amd64.iso
+
+            # Flash to USB
+            dd if=koppa-os-v1.1.0-amd64.iso of=/dev/sdX bs=4M status=progress
+
+            # VirtualBox: New VM → Linux 64-bit Debian → Attach ISO → Boot
+            # Login: koppa / koppa  (or autologin)
+            # Install to disk: click "Install KOPPA-OS" on desktop
             ```
 
             ### SHA256
