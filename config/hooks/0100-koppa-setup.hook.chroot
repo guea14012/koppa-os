@@ -56,8 +56,8 @@ AMASS=$(curl -fsSL https://api.github.com/repos/owasp-amass/amass/releases/lates
   2>/dev/null || true)
 if [ -n "$AMASS" ]; then
   curl -fsSL "$AMASS" -o /tmp/amass.zip && \
-    unzip -q /tmp/amass.zip "*/amass" -d /tmp/amass_dir && \
-    mv /tmp/amass_dir/*/amass "$GOTOOLS/amass" && \
+    unzip -q /tmp/amass.zip -d /tmp/amass_dir && \
+    find /tmp/amass_dir -type f -name "amass" -exec mv {} "$GOTOOLS/amass" \; && \
     chmod +x "$GOTOOLS/amass" && rm -rf /tmp/amass.zip /tmp/amass_dir 2>/dev/null || true
 fi
 
@@ -72,9 +72,18 @@ if [ -f /opt/exploitdb/searchsploit ]; then
     /opt/exploitdb/.searchsploit_rc > /etc/exploitdb/searchsploit.rc 2>/dev/null || true
 fi
 
-# ── CrackMapExec ──────────────────────────────────────────────────────────────
-echo "[KOPPA-OS] Installing CrackMapExec..."
-pip3 install crackmapexec --break-system-packages 2>/dev/null || true
+# ── NetExec (CrackMapExec successor) ─────────────────────────────────────────
+echo "[KOPPA-OS] Installing NetExec..."
+pip3 install netexec --break-system-packages 2>/dev/null || \
+  pip3 install crackmapexec --break-system-packages 2>/dev/null || true
+# compatibility symlinks
+for bin in nxc netexec crackmapexec cme; do
+  CMD=$(which $bin 2>/dev/null || true)
+  [ -n "$CMD" ] && break
+done
+[ -n "$CMD" ] && for alias in nxc cme crackmapexec; do
+  [ -e "/usr/local/bin/$alias" ] || ln -sf "$CMD" "/usr/local/bin/$alias" 2>/dev/null || true
+done
 
 # ── Volatility3 ───────────────────────────────────────────────────────────────
 echo "[KOPPA-OS] Installing Volatility3..."
@@ -125,7 +134,7 @@ cat > /etc/motd << 'MOTD'
   ██║  ██╗╚██████╔╝██║     ██║     ██║  ██║       ╚██████╔╝███████║
   ╚═╝  ╚═╝ ╚═════╝ ╚═╝     ╚═╝     ╚═╝  ╚═╝        ╚═════╝ ╚══════╝
 
-  KOPPA-OS v1.0 — Independent Redteam Platform
+  KOPPA-OS v1.0.1 — Independent Redteam Platform
   Built on Debian 12 Bookworm · Powered by KOPPA v3.0.1
 
   koppa repl                    Interactive KOPPA shell
@@ -136,7 +145,7 @@ cat > /etc/motd << 'MOTD'
 
   Top tools: nmap metasploit sqlmap hydra hashcat aircrack-ng
              gobuster ffuf nuclei amass searchsploit radare2
-             crackmapexec evil-winrm volatility3 wireshark
+             netexec evil-winrm volatility3 wireshark
 
   KOPPA Registry: https://guea14012.github.io/koppa-registry-/
 

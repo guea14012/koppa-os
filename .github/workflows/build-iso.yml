@@ -120,7 +120,7 @@ jobs:
             **Base:** Debian 12 Bookworm &nbsp;·&nbsp; **Arch:** amd64 &nbsp;·&nbsp; **Size:** ${{ steps.pkg.outputs.size }}
 
             ### Login
-            - **Autologin** → desktop อัตโนมัติ
+            - **Autologin** — desktop starts automatically
             - Username: `koppa` / Password: `koppa`
             - Username: `root` / Password: `koppa`
 
@@ -129,7 +129,7 @@ jobs:
             Network:    nmap · masscan · wireshark · hping3 · tcpdump
             Web:        sqlmap · nikto · gobuster · ffuf · nuclei · wfuzz
             Password:   hashcat · john · hydra · medusa · ncrack
-            Exploit:    metasploit · searchsploit · crackmapexec · evil-winrm
+            Exploit:    metasploit · searchsploit · netexec · evil-winrm
             Recon:      amass · theHarvester · dnsrecon · sublist3r
             Forensics:  binwalk · volatility3 · radare2 · steghide
             Wireless:   aircrack-ng · reaver
@@ -138,20 +138,24 @@ jobs:
 
             ### Download & Boot
             ```bash
-            # If split into parts, reassemble first:
-            cat koppa-os-*.iso.part* > koppa-os-v1.1.0-amd64.iso
+            # If ISO was split into parts, reassemble first:
+            cat koppa-os-*.iso.part* > koppa-os.iso
 
-            # Flash to USB
-            dd if=koppa-os-v1.1.0-amd64.iso of=/dev/sdX bs=4M status=progress
+            # Flash to USB (Linux/macOS)
+            dd if=koppa-os-*.iso of=/dev/sdX bs=4M status=progress
 
-            # VirtualBox: New VM → Linux 64-bit Debian → Attach ISO → Boot
+            # VirtualBox: New VM -> Linux 64-bit Debian -> Attach ISO -> Boot
             # Login: koppa / koppa  (or autologin)
             # Install to disk: click "Install KOPPA-OS" on desktop
             ```
 
-            ### SHA256
+            ### SHA256 Checksum
             ```
-            ${{ steps.pkg.outputs.sha256 }}
+            SHA256: ${{ steps.pkg.outputs.sha256 }}
+            ```
+            Download the `.sha256` file attached to this release and verify with:
+            ```bash
+            sha256sum -c koppa-os-*.sha256
             ```
 
             > **AUTHORIZED USE ONLY** — for pentesting, CTFs, and security research.
