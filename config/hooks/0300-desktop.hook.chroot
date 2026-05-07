@@ -875,4 +875,23 @@ cat > /etc/xdg/menus/applications-merged/koppa-categories.menu << 'MENUEOF'
 </Menu>
 MENUEOF
 
+# ── Install KOPPA-OS desktop shortcut ────────────────────────────────────────
+if command -v calamares &>/dev/null; then
+    cat > "$APP_DIR/koppa-install.desktop" << 'EOF'
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Install KOPPA-OS
+Comment=Install KOPPA-OS to your hard disk
+Exec=pkexec calamares
+Icon=/usr/share/icons/koppa-os/koppa-os.png
+Terminal=false
+Categories=System;
+Keywords=install;setup;koppa;
+EOF
+    chmod 644 "$APP_DIR/koppa-install.desktop"
+    cp "$APP_DIR/koppa-install.desktop" "/etc/skel/Desktop/install-koppa-os.desktop" 2>/dev/null || true
+    chmod +x "/etc/skel/Desktop/install-koppa-os.desktop" 2>/dev/null || true
+fi
+
 echo "[KOPPA-OS] Desktop environment configured."

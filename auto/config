@@ -20,7 +20,8 @@ lb config noauto \
     --binary-image       iso-hybrid \
     --bootappend-live    "boot=live components net.ifnames=0 hostname=koppa-os" \
     \
-    --debian-installer   none \
+    --debian-installer   live \
+    --debian-installer-gui true \
     --initsystem         systemd \
     \
     --iso-application    "KOPPA-OS" \

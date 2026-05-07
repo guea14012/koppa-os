@@ -127,6 +127,10 @@ fonts-dejavu-core
 fonts-liberation
 fonts-unifont
 
+# ── Installer ────────────────────────────────────────────────────────────────
+calamares
+calamares-settings-debian
+
 # ── Misc useful ──────────────────────────────────────────────────────────────
 mousepad
 catfish
