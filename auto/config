@@ -18,7 +18,7 @@ lb config noauto \
     --apt-recommends     false \
     \
     --binary-image       iso-hybrid \
-    --bootappend-live    "boot=live components quiet splash plymouth.enable=1 net.ifnames=0 hostname=koppa-os" \
+    --bootappend-live    "boot=live components net.ifnames=0 hostname=koppa-os" \
     \
     --debian-installer   none \
     --initsystem         systemd \

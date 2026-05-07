@@ -121,11 +121,6 @@ lightdm-gtk-greeter
 lightdm-gtk-greeter-settings
 firefox-esr
 
-# ── Boot splash ───────────────────────────────────────────────────────────────
-plymouth
-plymouth-x11
-plymouth-themes
-
 # ── Info / fonts ──────────────────────────────────────────────────────────────
 neofetch
 fonts-dejavu-core
